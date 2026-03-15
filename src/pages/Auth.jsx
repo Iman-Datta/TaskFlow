@@ -25,19 +25,20 @@ function Auth() {
         body: JSON.stringify({ email, password, name }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        throw new Error("Failed to register user");
+        // if account already exists
+        if (res.status === 409) {
+          navigate("/auth");
+          return;
+        }
+        throw new Error(data.message || "Registration failed");
       }
-
-      const me = await fetch(`${API}/auth/me`, {
-        credentials: "include",
+      // Redirect to check email page
+      navigate("/checkEmail", {
+        state: { email },
       });
-
-      const userData = await me.json();
-
-      dispatch(setUser(userData.user));
-
-      navigate("/task");
     } catch (error) {
       console.error(error);
     }
@@ -52,10 +53,20 @@ function Auth() {
         credentials: "include",
       });
 
-      if (!res.ok) {
-        throw new Error("Failed to login");
-      }
+      const data = await res.json();
 
+      if (!res.ok) {
+        // email not verified
+        if (res.status === 403) {
+          navigate("/checkEmail", {
+            state: { email },
+          });
+          return;
+        }
+
+        throw new Error(data.message || "Failed to login");
+      }
+      
       const me = await fetch(`${API}/auth/me`, {
         credentials: "include",
       });
