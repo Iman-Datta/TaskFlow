@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -20,7 +21,8 @@ function RegisterEntry({ onLogin, onRegister }) {
     focus:outline-none focus:ring-2 focus:ring-emerald-500
     transition
   `;
-
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setConfirmShowPassword] = useState(false);
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -59,24 +61,48 @@ function RegisterEntry({ onLogin, onRegister }) {
           required
           className={inputStyle}
         />
+        <div className="relative">
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleChange}
+            className={inputStyle}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500">
+            {showPassword ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
+          </button>
+        </div>
 
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          value={formData.password}
-          onChange={handleChange}
-          className={inputStyle}
-        />
+        <div className="relative">
+          <input
+            name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Confirm Password"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className={`${inputStyle} pr-10`}
+          />
 
-        <input
-          name="confirmPassword"
-          type="password"
-          placeholder="Confirm Password"
-          value={formData.confirmPassword}
-          onChange={handleChange}
-          className={inputStyle}
-        />
+          <button
+            type="button"
+            onClick={() => setConfirmShowPassword((prev) => !prev)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500">
+            {showConfirmPassword ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
+          </button>
+        </div>
 
         <button
           type="submit"
@@ -89,8 +115,7 @@ function RegisterEntry({ onLogin, onRegister }) {
             shadow-sm shadow-black/10
             dark:shadow-black/30
             transition
-          "
-        >
+          ">
           Create Account
         </button>
       </form>
@@ -113,8 +138,7 @@ function RegisterEntry({ onLogin, onRegister }) {
     dark:hover:bg-zinc-800
     transition
   "
-        onClick={handleGoogleLogin}
-      >
+        onClick={handleGoogleLogin}>
         <FcGoogle size={20} />
 
         <span className="font-medium text-zinc-700 dark:text-zinc-300">
@@ -126,8 +150,7 @@ function RegisterEntry({ onLogin, onRegister }) {
         Already have an account?{" "}
         <button
           onClick={onLogin}
-          className="text-emerald-500 hover:text-emerald-400 transition"
-        >
+          className="text-emerald-500 hover:text-emerald-400 transition">
           Login
         </button>
       </p>

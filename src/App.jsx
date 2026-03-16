@@ -11,6 +11,7 @@ import Task from "./pages/Task";
 import Completed from "./pages/Completed";
 import Trash from "./pages/Trash";
 import OAuthSuccess from "./pages/OAuthSuccess";
+import About from "./pages/About";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -52,6 +53,7 @@ function App() {
         <Route path="/completed" element={<Completed />} />
         <Route path="/trash" element={<Trash />} />
         <Route path="/oauth-success" element={<OAuthSuccess />} />
+        <Route path="/about" element={<About />} />
       </Routes>
     </div>
   );

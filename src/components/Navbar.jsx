@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { Trash2, CheckCircle, Moon, Sun } from "lucide-react";
+import { Trash2, CheckCircle, Moon, Sun, Info } from "lucide-react";
 
 import { clearUser } from "../features/auth/authSlice";
 import { setTheme } from "../features/theme/themeSlice";
@@ -25,10 +25,10 @@ function Navbar() {
 
       const data = await res.json();
 
+      dispatch(clearUser());
       if (!res.ok) {
         throw new Error(data.message || "Failed to logout");
       }
-      dispatch(clearUser());
       navigate("/");
       console.log("Logged out successfully");
       return data;
@@ -56,8 +56,7 @@ function Navbar() {
       className="fixed top-0 left-0 w-full z-50
     bg-white/70 border-b border-zinc-200 shadow-sm shadow-black/10
     dark:bg-zinc-950/70 dark:border-zinc-800 dark:shadow-black/30
-    backdrop-blur-xl transition-colors duration-300"
-    >
+    backdrop-blur-xl transition-colors duration-300">
       <div className="max-w-5xl mx-auto px-6 h-20 flex justify-between items-center">
         {/* Logo */}
         <Link to="/">
@@ -66,8 +65,7 @@ function Navbar() {
               <svg
                 viewBox="0 0 32 32"
                 className="w-9 h-9 transition-transform duration-500 group-hover:rotate-90"
-                fill="none"
-              >
+                fill="none">
                 <rect
                   width="32"
                   height="32"
@@ -95,26 +93,33 @@ function Navbar() {
 
         <div className="flex items-center gap-8">
           {/* Icons */}
-          <div className="flex items-center gap-6">
-            <Link
-              to="/completed"
-              title="Completed Tasks"
-              className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition"
-            >
-              <CheckCircle size={20} />
-            </Link>
+          {user && (
+            <div className="flex items-center gap-6">
+              <Link
+                to="/completed"
+                title="Completed Tasks"
+                className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition">
+                <CheckCircle size={20} />
+              </Link>
 
-            <Link
-              to="/trash"
-              title="Trash"
-              className="text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition"
-            >
-              <Trash2 size={20} />
-            </Link>
-          </div>
+              <Link
+                to="/trash"
+                title="Trash"
+                className="text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition">
+                <Trash2 size={20} />
+              </Link>
+            </div>
+          )}
 
           {/* Right side */}
           <div className="flex items-center gap-6">
+            {" "}
+            <Link
+              to="/about"
+              title="About"
+              className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition">
+              <Info size={20} />
+            </Link>
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
@@ -123,11 +128,9 @@ function Navbar() {
             text-zinc-500 dark:text-zinc-400
             hover:text-yellow-500
             hover:bg-zinc-200 dark:hover:bg-zinc-800
-            transition-all duration-300"
-            >
+            transition-all duration-300">
               {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
             </button>
-
             {/* Main CTA */}
             <Link
               to="/task"
@@ -140,11 +143,9 @@ function Navbar() {
             hover:shadow-xl hover:-translate-y-0.5
             active:translate-y-0 active:shadow-md
             transition-all duration-300 ease-out
-          "
-            >
+          ">
               {user ? "My Tasks" : "Get Started"}
             </Link>
-
             {/* Auth */}
             {user ? (
               <button
@@ -158,8 +159,7 @@ function Navbar() {
               after:bg-emerald-400
               after:transition-all after:duration-300
               hover:after:w-full
-              transition-all duration-200"
-              >
+              transition-all duration-200">
                 Logout
               </button>
             ) : (
@@ -174,8 +174,7 @@ function Navbar() {
               after:bg-emerald-400
               after:transition-all after:duration-300
               hover:after:w-full
-              transition-all duration-200"
-              >
+              transition-all duration-200">
                 Sign in
               </Link>
             )}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,20 @@ function AddTaskForm({ onAddTask, onCancel }) {
     deadline: null,
     priority: "",
   });
+
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc);
+
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [onCancel]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -86,8 +100,7 @@ function AddTaskForm({ onAddTask, onCancel }) {
       shadow-xl shadow-black/10 dark:shadow-black/40
       mb-10
       transition-colors duration-300
-    "
-    >
+    ">
       <h2 className="text-xl font-semibold mb-4 text-zinc-900 dark:text-zinc-100">
         Add New Task
       </h2>
@@ -119,8 +132,7 @@ function AddTaskForm({ onAddTask, onCancel }) {
             name="priority"
             className={`flex-1 ${inputStyle}`}
             value={formData.priority}
-            onChange={handleChange}
-          >
+            onChange={handleChange}>
             <option value="">No priority</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -146,8 +158,7 @@ function AddTaskForm({ onAddTask, onCancel }) {
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className={`flex-1 ${inputStyle}`}
-            >
+              className={`flex-1 ${inputStyle}`}>
               <option value="">Select category</option>
 
               {categoryOptions.map((cat) => (
@@ -174,8 +185,7 @@ function AddTaskForm({ onAddTask, onCancel }) {
                   text-zinc-700 hover:bg-zinc-100
                   dark:bg-zinc-900 dark:border-zinc-800
                   dark:text-zinc-200 dark:hover:bg-zinc-800
-                "
-                >
+                ">
                   {date ? format(date, "dd-MM-yyyy") : "dd-mm-yyyy"}
 
                   <CalendarIcon className="ml-2 h-4 w-4 text-zinc-400" />
@@ -188,8 +198,7 @@ function AddTaskForm({ onAddTask, onCancel }) {
                 bg-white border border-zinc-300
                 dark:bg-zinc-900 dark:border-zinc-800
               "
-                align="start"
-              >
+                align="start">
                 <Calendar
                   mode="single"
                   selected={date}
@@ -217,16 +226,14 @@ function AddTaskForm({ onAddTask, onCancel }) {
             dark:bg-zinc-800 dark:hover:bg-zinc-700
             dark:text-zinc-300
             transition
-          "
-          >
+          ">
             Cancel
           </button>
 
           <button
             onClick={handleSubmit}
             className="
-            px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-black/10 transition"
-          >
+            px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-black/10 transition">
             Add Task
           </button>
         </div>

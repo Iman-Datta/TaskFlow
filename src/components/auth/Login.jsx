@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -8,6 +9,8 @@ function Login({ onLogin, onRegister, onForgot, onLoginSuccess }) {
     email: "",
     password: "",
   });
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const inputStyle = `
     w-full
@@ -61,15 +64,28 @@ function Login({ onLogin, onRegister, onForgot, onLoginSuccess }) {
           className={inputStyle}
         />
 
-        <input
-          type="password"
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
-          placeholder="Password"
-          required
-          className={inputStyle}
-        />
+        <div className="relative">
+          <input
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Password"
+            required
+            className={`${inputStyle} pr-10`}
+          />
+
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+            {showPassword ? (
+              <AiOutlineEyeInvisible size={20} />
+            ) : (
+              <AiOutlineEye size={20} />
+            )}
+          </button>
+        </div>
 
         <button
           type="submit"
@@ -82,8 +98,7 @@ function Login({ onLogin, onRegister, onForgot, onLoginSuccess }) {
             shadow-sm shadow-black/10
             dark:shadow-black/30
             transition
-          "
-        >
+          ">
           Login
         </button>
       </form>
@@ -106,8 +121,7 @@ function Login({ onLogin, onRegister, onForgot, onLoginSuccess }) {
     dark:hover:bg-zinc-800
     transition
   "
-        onClick={handleGoogleLogin}
-      >
+        onClick={handleGoogleLogin}>
         <FcGoogle size={20} />
 
         <span className="font-medium text-zinc-700 dark:text-zinc-300">
@@ -120,16 +134,14 @@ function Login({ onLogin, onRegister, onForgot, onLoginSuccess }) {
           Don’t have an account?{" "}
           <button
             onClick={onRegister}
-            className="text-emerald-500 hover:text-emerald-400 transition"
-          >
+            className="text-emerald-500 hover:text-emerald-400 transition">
             Create account
           </button>
         </p>
 
         <button
           onClick={onForgot}
-          className="text-emerald-500 hover:text-emerald-400 transition"
-        >
+          className="text-emerald-500 hover:text-emerald-400 transition">
           Forgot password?
         </button>
       </div>
