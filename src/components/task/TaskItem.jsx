@@ -6,8 +6,8 @@ import {
   RotateCcw,
   Check,
   X,
+  ChevronDown,
 } from "lucide-react";
-
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -15,10 +15,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const categoryOptions = [
   "Work",
@@ -56,6 +55,7 @@ function TaskItem({
   task,
   variant = "normal",
   deleteCandidate,
+  isRemoving,
   onToggleStatus,
   onDelete,
   onConfirmDelete,
@@ -64,9 +64,17 @@ function TaskItem({
   onRestore,
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const isCompleted = task.status === "Completed";
   const isDeletePending = deleteCandidate === task._id;
   const textareaRef = useRef(null);
+
+  // Mount animation
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
 
   const [editedData, setEditedData] = useState({
     taskname: task.title,
@@ -102,8 +110,7 @@ function TaskItem({
       editedData.category === "Custom"
         ? editedData.categoryInput?.trim() || "Other"
         : editedData.category;
-
-    const payload = {
+    onUpdate(task._id, {
       taskname: editedData.taskname,
       description: editedData.description,
       category: finalCategory,
@@ -111,39 +118,35 @@ function TaskItem({
       deadline: editedData.deadline
         ? format(editedData.deadline, "yyyy-MM-dd")
         : null,
-    };
-
-    onUpdate(task._id, payload);
+    });
     setIsEditing(false);
   };
 
+  // Auto-resize textarea
   const handleTextareaChange = (e) => {
     handleChange(e);
-    const textarea = textareaRef.current;
-    textarea.style.height = "auto";
-    const maxHeight = 3 * 24;
-    if (textarea.scrollHeight <= maxHeight) {
-      textarea.style.height = textarea.scrollHeight + "px";
-      textarea.style.overflowY = "hidden";
-    } else {
-      textarea.style.height = maxHeight + "px";
-      textarea.style.overflowY = "auto";
-    }
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+    el.style.overflowY = el.scrollHeight > 120 ? "auto" : "hidden";
   };
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      const el = textareaRef.current;
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 120) + "px";
+    }
+  }, [isEditing]);
 
   const getRemainingTime = (deadline) => {
     if (!deadline) return null;
-
-    const currentTime = new Date();
-    const end = new Date(deadline);
-    const diff = end - currentTime;
-
+    const diff = new Date(deadline) - new Date();
     if (diff <= 0) return "Expired";
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
     if (days > 0) return `${days}d ${hours}h left`;
     if (hours > 0) return `${hours}h ${minutes}m left`;
     return `${minutes}m left`;
@@ -151,22 +154,37 @@ function TaskItem({
 
   const getDeleteRemaining = (deletedAt) => {
     if (!deletedAt) return null;
-
-    const currentTime = new Date();
-    const deleteTime = new Date(deletedAt).getTime() + 24 * 60 * 60 * 1000;
-
-    const diff = deleteTime - currentTime;
-
+    const diff = new Date(deletedAt).getTime() + 86400000 - Date.now();
     if (diff <= 0) return "Deleting soon";
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff / (1000 * 60)) % 60);
-
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
     return `${hours}h ${minutes}m`;
   };
 
+  // Description preview (collapsed)
+  const descPreview =
+    task.description?.length > 100
+      ? task.description.slice(0, 100) + "…"
+      : task.description;
+  const hasLongDesc = task.description?.length > 100;
+
   return (
-    <div className="space-y-2">
+    <div
+      className={`
+        transition-all duration-450 ease-in-out
+        ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}
+        ${
+          isRemoving
+            ? variant === "normal" && isCompleted
+              ? // Complete: slide right + fade + green tint
+                "opacity-0 translate-x-8 scale-95 bg-emerald-50 dark:bg-emerald-950/20"
+              : // Delete: slide left + fade + shrink height
+                "opacity-0 -translate-x-6 scale-95 max-h-0 overflow-hidden"
+            : ""
+        }
+      `}
+      style={{ transitionDuration: isRemoving ? "420ms" : "300ms" }}
+    >
       <div
         className={`
           relative bg-white dark:bg-zinc-900
@@ -181,7 +199,7 @@ function TaskItem({
           ${variant === "normal" && isCompleted ? "opacity-50 scale-[0.98]" : ""}
         `}
       >
-        {/* Emerald top strip shown only in edit mode */}
+        {/* Edit mode top accent strip */}
         {isEditing && (
           <div className="absolute top-0 left-0 right-0 h-[2.5px] rounded-t-2xl bg-gradient-to-r from-emerald-400 via-emerald-300/60 to-transparent" />
         )}
@@ -190,11 +208,14 @@ function TaskItem({
           {/* ── LEFT ── */}
           <div className="flex items-start gap-3 flex-1 min-w-0">
             {variant === "normal" && (
-              <Checkbox
-                checked={isCompleted}
-                onCheckedChange={() => onToggleStatus(task._id)}
-                className="mt-1 shrink-0 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-lg"
-              />
+              <div className="mt-1 shrink-0">
+                <Checkbox
+                  checked={isCompleted}
+                  onCheckedChange={() => onToggleStatus(task._id)}
+                  className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 rounded-lg
+                    transition-all duration-200 hover:scale-110"
+                />
+              </div>
             )}
 
             <div className="flex-1 min-w-0">
@@ -208,17 +229,15 @@ function TaskItem({
                     w-full bg-transparent
                     text-lg font-semibold leading-snug
                     text-zinc-900 dark:text-zinc-100
-                    border-b-2 border-dashed
-                    border-zinc-200 dark:border-zinc-700
+                    border-b-2 border-dashed border-zinc-200 dark:border-zinc-700
                     hover:border-zinc-300 dark:hover:border-zinc-600
                     focus:border-solid focus:border-emerald-400 dark:focus:border-emerald-500
-                    focus:outline-none
-                    transition-all duration-200 pb-0.5
+                    focus:outline-none transition-all duration-200 pb-0.5
                   "
                 />
               ) : (
                 <h2
-                  className={`text-lg font-semibold leading-snug ${
+                  className={`text-lg font-semibold leading-snug transition-all duration-300 ${
                     variant === "normal" && isCompleted
                       ? "line-through text-zinc-400 opacity-70"
                       : "text-zinc-900 dark:text-zinc-100"
@@ -228,32 +247,65 @@ function TaskItem({
                 </h2>
               )}
 
-              {/* Description */}
+              {/* Description — improved */}
               {isEditing ? (
-                <textarea
-                  ref={textareaRef}
-                  name="description"
-                  value={editedData.description}
-                  onChange={handleTextareaChange}
-                  rows={1}
-                  placeholder="Add a description..."
-                  className="
-                    w-full mt-2 resize-none bg-transparent
-                    text-sm leading-relaxed
-                    text-zinc-600 dark:text-zinc-400
-                    placeholder:text-zinc-300 dark:placeholder:text-zinc-600
-                    border-b-2 border-dashed
-                    border-zinc-200 dark:border-zinc-700
+                <div className="mt-3">
+                  {/* Label */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] uppercase tracking-widest font-semibold text-zinc-400 dark:text-zinc-500">
+                      Description
+                    </span>
+                    <span className="text-[10px] text-zinc-300 dark:text-zinc-600">
+                      {editedData.description?.length || 0} chars
+                    </span>
+                  </div>
+                  {/* Textarea with pill border */}
+                  <div
+                    className="relative rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700
                     hover:border-zinc-300 dark:hover:border-zinc-600
-                    focus:border-solid focus:border-emerald-400 dark:focus:border-emerald-500
-                    focus:outline-none
-                    transition-all duration-200 pb-0.5
-                  "
-                />
+                    focus-within:border-solid focus-within:border-emerald-400 dark:focus-within:border-emerald-500
+                    focus-within:ring-1 focus-within:ring-emerald-400/20
+                    transition-all duration-200 bg-zinc-50/50 dark:bg-zinc-800/30"
+                  >
+                    <textarea
+                      ref={textareaRef}
+                      name="description"
+                      value={editedData.description}
+                      onChange={handleTextareaChange}
+                      rows={2}
+                      placeholder="Add a description…"
+                      className="
+                        w-full px-3 py-2.5 resize-none bg-transparent
+                        text-sm leading-relaxed
+                        text-zinc-600 dark:text-zinc-400
+                        placeholder:text-zinc-300 dark:placeholder:text-zinc-600
+                        focus:outline-none rounded-xl
+                      "
+                    />
+                  </div>
+                </div>
               ) : (
-                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
-                  {task.description}
-                </p>
+                task.description && (
+                  <div className="mt-1.5">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">
+                      {hasLongDesc && !descExpanded
+                        ? descPreview
+                        : task.description}
+                    </p>
+                    {hasLongDesc && (
+                      <button
+                        onClick={() => setDescExpanded((p) => !p)}
+                        className="flex items-center gap-0.5 mt-1 text-[11px] font-medium text-zinc-400 hover:text-emerald-500 transition-colors duration-150"
+                      >
+                        <ChevronDown
+                          size={12}
+                          className={`transition-transform duration-200 ${descExpanded ? "rotate-180" : ""}`}
+                        />
+                        {descExpanded ? "Show less" : "Show more"}
+                      </button>
+                    )}
+                  </div>
+                )
               )}
 
               {/* Category */}
@@ -275,14 +327,12 @@ function TaskItem({
                             categoryInput: e.target.value,
                           }))
                         }
-                        className="
-                          text-xs px-2.5 py-1 rounded-md
+                        className="text-xs px-2.5 py-1 rounded-md
                           bg-zinc-50 dark:bg-zinc-800/60
                           border border-dashed border-zinc-300 dark:border-zinc-600
                           text-zinc-700 dark:text-zinc-300
                           focus:outline-none focus:border-solid focus:border-emerald-400 dark:focus:border-emerald-500
-                          transition-all duration-200
-                        "
+                          transition-all duration-200"
                       />
                     ) : (
                       <select
@@ -294,14 +344,12 @@ function TaskItem({
                             category: e.target.value,
                           }))
                         }
-                        className="
-                          text-xs px-2.5 py-1 rounded-md
+                        className="text-xs px-2.5 py-1 rounded-md
                           bg-zinc-50 dark:bg-zinc-800/60
                           border border-dashed border-zinc-300 dark:border-zinc-600
                           text-zinc-700 dark:text-zinc-300
                           focus:outline-none focus:border-solid focus:border-emerald-400 dark:focus:border-emerald-500
-                          transition-all duration-200 cursor-pointer
-                        "
+                          transition-all duration-200 cursor-pointer"
                       >
                         {categoryOptions.map((cat) => (
                           <option key={cat} value={cat}>
@@ -314,11 +362,11 @@ function TaskItem({
                 ) : (
                   <span
                     className={`
-                      inline-flex items-center gap-1.5
-                      text-[11px] font-semibold tracking-wider uppercase
-                      px-2.5 py-1 rounded-md border
-                      ${categoryColors[task.category] || "bg-sky-500/10 text-sky-400 border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20"}
-                    `}
+                    inline-flex items-center gap-1.5
+                    text-[11px] font-semibold tracking-wider uppercase
+                    px-2.5 py-1 rounded-md border
+                    ${categoryColors[task.category] || "bg-sky-500/10 text-sky-400 border-sky-500/20"}
+                  `}
                   >
                     <svg
                       width="6"
@@ -343,17 +391,13 @@ function TaskItem({
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
-                          className="
-                            inline-flex items-center gap-1.5
-                            text-xs px-2.5 py-1 rounded-md
-                            bg-zinc-50 dark:bg-zinc-800/60
-                            border border-dashed border-zinc-300 dark:border-zinc-600
-                            text-zinc-600 dark:text-zinc-400
-                            hover:border-zinc-400 dark:hover:border-zinc-500
-                            hover:text-zinc-800 dark:hover:text-zinc-200
-                            focus:outline-none
-                            transition-all duration-200
-                          "
+                          className="inline-flex items-center gap-1.5
+                          text-xs px-2.5 py-1 rounded-md
+                          bg-zinc-50 dark:bg-zinc-800/60
+                          border border-dashed border-zinc-300 dark:border-zinc-600
+                          text-zinc-600 dark:text-zinc-400
+                          hover:border-zinc-400 dark:hover:border-zinc-500
+                          focus:outline-none transition-all duration-200"
                         >
                           <CalendarIcon className="h-3 w-3 text-zinc-400" />
                           {editedData.deadline
@@ -384,14 +428,19 @@ function TaskItem({
                   variant === "normal" && (
                     <div className="flex items-center gap-2 text-xs">
                       <Clock className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
-
                       <span className="text-zinc-500 dark:text-zinc-400">
                         {task.deadline &&
                           format(new Date(task.deadline), "dd MMM yyyy")}
                       </span>
-
                       {task.deadline && (
-                        <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-500 text-[10px] font-semibold">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-colors
+                          ${
+                            getRemainingTime(task.deadline) === "Expired"
+                              ? "bg-red-500/10 text-red-500"
+                              : "bg-amber-500/10 text-amber-500"
+                          }`}
+                        >
                           {getRemainingTime(task.deadline)}
                         </span>
                       )}
@@ -414,14 +463,12 @@ function TaskItem({
                   name="priority"
                   value={editedData.priority}
                   onChange={handleChange}
-                  className="
-                    text-xs px-2.5 py-1 rounded-md
+                  className="text-xs px-2.5 py-1 rounded-md
                     bg-zinc-50 dark:bg-zinc-800/60
                     border border-dashed border-zinc-300 dark:border-zinc-600
                     text-zinc-700 dark:text-zinc-300
                     focus:outline-none focus:border-solid focus:border-emerald-400 dark:focus:border-emerald-500
-                    transition-all duration-200 cursor-pointer
-                  "
+                    transition-all duration-200 cursor-pointer"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -431,72 +478,57 @@ function TaskItem({
             ) : (
               <span
                 className={`
-                  inline-flex items-center gap-1.5
-                  text-[11px] font-semibold tracking-wider uppercase
-                  px-3 py-1 rounded-lg
-                  border-l-[3px] border border-transparent
-                  ${
-                    task.priority === "high"
-                      ? "border-l-red-500 bg-red-50/80 text-red-600 border-red-100 dark:bg-zinc-800/80 dark:text-red-400 dark:border-zinc-700/40 dark:border-l-red-500"
-                      : ""
-                  }
-                  ${
-                    task.priority === "medium"
-                      ? "border-l-amber-500 bg-amber-50/80 text-amber-600 border-amber-100 dark:bg-zinc-800/80 dark:text-amber-400 dark:border-zinc-700/40 dark:border-l-amber-500"
-                      : ""
-                  }
-                  ${
-                    task.priority === "low"
-                      ? "border-l-emerald-500 bg-emerald-50/80 text-emerald-600 border-emerald-100 dark:bg-zinc-800/80 dark:text-emerald-400 dark:border-zinc-700/40 dark:border-l-emerald-500"
-                      : ""
-                  }
-                `}
+                inline-flex items-center gap-1.5
+                text-[11px] font-semibold tracking-wider uppercase
+                px-3 py-1 rounded-lg
+                border-l-[3px] border border-transparent
+                transition-all duration-200
+                ${task.priority === "high" ? "border-l-red-500    bg-red-50/80    text-red-600    border-red-100    dark:bg-zinc-800/80 dark:text-red-400    dark:border-zinc-700/40 dark:border-l-red-500" : ""}
+                ${task.priority === "medium" ? "border-l-amber-500  bg-amber-50/80  text-amber-600  border-amber-100  dark:bg-zinc-800/80 dark:text-amber-400  dark:border-zinc-700/40 dark:border-l-amber-500" : ""}
+                ${task.priority === "low" ? "border-l-emerald-500 bg-emerald-50/80 text-emerald-600 border-emerald-100 dark:bg-zinc-800/80 dark:text-emerald-400 dark:border-zinc-700/40 dark:border-l-emerald-500" : ""}
+              `}
               >
                 {task.priority}
               </span>
             )}
 
-            {/* Action Buttons */}
+            {/* Action buttons */}
             {isEditing ? (
               <div className="flex gap-2">
                 <button
                   onClick={handleSubmit}
-                  className="
-                    flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
-                    bg-emerald-500 hover:bg-emerald-400
-                    text-white shadow-sm shadow-emerald-500/20
-                    active:scale-[0.97] transition-all duration-150
-                  "
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                    bg-emerald-500 hover:bg-emerald-400 text-white
+                    shadow-sm shadow-emerald-500/20
+                    active:scale-[0.97] transition-all duration-150"
                 >
-                  <Check size={12} strokeWidth={2.5} />
-                  Save
+                  <Check size={12} strokeWidth={2.5} /> Save
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="
-                    flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
                     border border-zinc-200 dark:border-zinc-700
                     text-zinc-500 dark:text-zinc-400
                     hover:bg-zinc-100 dark:hover:bg-zinc-800
                     hover:text-zinc-700 dark:hover:text-zinc-200
-                    active:scale-[0.97] transition-all duration-150
-                  "
+                    active:scale-[0.97] transition-all duration-150"
                 >
-                  <X size={12} strokeWidth={2.5} />
-                  Cancel
+                  <X size={12} strokeWidth={2.5} /> Cancel
                 </button>
               </div>
             ) : variant === "normal" ? (
               <div className="flex gap-2">
                 <button
                   onClick={handleEditClick}
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all duration-200"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-blue-400 hover:bg-blue-500/10
+                    active:scale-90 transition-all duration-150"
                 >
                   <Pencil size={15} />
                 </button>
                 <button
                   onClick={() => onDelete(task._id)}
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10
+                    active:scale-90 transition-all duration-150"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -507,14 +539,18 @@ function TaskItem({
                   variant="outline"
                   size="sm"
                   onClick={() => onRestore?.(task._id)}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border-zinc-200 dark:border-zinc-700 hover:bg-emerald-50 hover:text-emerald-500 hover:border-emerald-300 dark:hover:bg-emerald-950 dark:hover:border-emerald-800 transition-all duration-200"
+                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg
+                    border-zinc-200 dark:border-zinc-700
+                    hover:bg-emerald-50 hover:text-emerald-500 hover:border-emerald-300
+                    dark:hover:bg-emerald-950 dark:hover:border-emerald-800
+                    active:scale-[0.97] transition-all duration-150"
                 >
-                  <RotateCcw size={13} />
-                  Restore
+                  <RotateCcw size={13} /> Restore
                 </Button>
                 <button
                   onClick={() => onDelete(task._id)}
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-red-400 hover:bg-red-500/10
+                    active:scale-90 transition-all duration-150"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -527,27 +563,38 @@ function TaskItem({
                     Auto delete in {getDeleteRemaining(task.deletedAt)}
                   </div>
                 )}
-
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onRestore?.(task._id)}
-                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg border-zinc-200 dark:border-zinc-700 hover:bg-emerald-50 hover:text-emerald-500 hover:border-emerald-300 dark:hover:bg-emerald-950 dark:hover:border-emerald-800 transition-all duration-200"
+                  className="flex items-center gap-1.5 h-8 px-3 text-xs rounded-lg
+                    border-zinc-200 dark:border-zinc-700
+                    hover:bg-emerald-50 hover:text-emerald-500 hover:border-emerald-300
+                    dark:hover:bg-emerald-950 dark:hover:border-emerald-800
+                    active:scale-[0.97] transition-all duration-150"
                 >
-                  <RotateCcw size={13} />
-                  Restore
+                  <RotateCcw size={13} /> Restore
                 </Button>
               </div>
             ) : null}
           </div>
         </div>
 
-        {/* ── Delete confirmation ── */}
+        {/* Delete confirmation */}
         {isDeletePending && (
-          <div className="mt-3 overflow-hidden rounded-xl border border-red-200/60 dark:border-red-700/30 bg-gradient-to-r from-red-50/80 via-red-50/40 to-transparent dark:from-red-900/20 dark:via-zinc-900/60 dark:to-zinc-900/20 backdrop-blur-sm">
+          <div
+            className="mt-3 overflow-hidden rounded-xl
+            border border-red-200/60 dark:border-red-700/30
+            bg-gradient-to-r from-red-50/80 via-red-50/40 to-transparent
+            dark:from-red-900/20 dark:via-zinc-900/60 dark:to-zinc-900/20
+            animate-in fade-in slide-in-from-bottom-1 duration-200"
+          >
             <div className="flex items-center justify-between gap-4 px-4 py-3">
               <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0 bg-red-100 dark:bg-red-900/30 border border-red-200/80 dark:border-red-700/40">
+                <div
+                  className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0
+                  bg-red-100 dark:bg-red-900/30 border border-red-200/80 dark:border-red-700/40"
+                >
                   <Trash2
                     size={13}
                     className="text-red-500 dark:text-red-400"
@@ -565,16 +612,24 @@ function TaskItem({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={onCancelDelete}
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-zinc-500 dark:text-zinc-400 border border-zinc-200/80 dark:border-zinc-700/50 hover:bg-white dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-zinc-200 active:scale-[0.97] transition-all duration-150"
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium
+                    text-zinc-500 dark:text-zinc-400
+                    border border-zinc-200/80 dark:border-zinc-700/50
+                    hover:bg-white dark:hover:bg-zinc-800
+                    hover:text-zinc-800 dark:hover:text-zinc-200
+                    active:scale-[0.97] transition-all duration-150"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={onConfirmDelete}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-500 dark:bg-red-600/80 dark:hover:bg-red-500/90 text-white border border-red-700/30 shadow-sm shadow-red-900/25 active:scale-[0.97] transition-all duration-150"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold
+                    bg-red-600 hover:bg-red-500 dark:bg-red-600/80 dark:hover:bg-red-500/90
+                    text-white border border-red-700/30
+                    shadow-sm shadow-red-900/25
+                    active:scale-[0.97] transition-all duration-150"
                 >
-                  <Trash2 size={11} />
-                  Delete
+                  <Trash2 size={11} /> Delete
                 </button>
               </div>
             </div>

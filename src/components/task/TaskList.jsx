@@ -4,6 +4,7 @@ function TaskList({
   tasks,
   variant,
   deleteCandidate,
+  removingIds, // ← add
   onToggleStatus,
   onDelete,
   onConfirmDelete,
@@ -19,6 +20,7 @@ function TaskList({
           task={task}
           variant={variant}
           deleteCandidate={deleteCandidate}
+          isRemoving={removingIds?.has(task._id)}
           onToggleStatus={onToggleStatus}
           onDelete={onDelete}
           onConfirmDelete={onConfirmDelete}

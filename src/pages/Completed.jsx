@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 import TaskList from "../components/task/TaskList";
 import TaskHeader from "../components/task/TaskHeader";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 import { useSelector, useDispatch } from "react-redux";
 import { fetchWithAuth } from "../utils/fetchWithAuth";
@@ -66,13 +66,18 @@ function Completed() {
         accessToken,
       );
 
-      if (!res) return;
+      if (!res) {
+        toast.error("Failed to restore task.");
+        throw new Error("Failed to restore task");
+      }
 
       if (!res.ok) {
+        toast.error("Failed to restore task.");
         throw new Error("Failed to restore task");
       }
 
       // remove task instantly from completed list
+      toast.success("Task restored.");
       setCompletedTasks((prev) => prev.filter((task) => task._id !== id));
     } catch (error) {
       toast.error("Something went wrong");
@@ -96,12 +101,16 @@ function Completed() {
       accessToken,
     );
 
-    if (!res) return;
-    if (!res.ok) return;
+    if (!res) {
+      return toast.error("Failed to delete task.");
+    }
+    if (!res.ok) {
+      return toast.error("Failed to delete task.");
+    }
 
     setCompletedTasks((prev) => prev.filter((t) => t._id !== deleteCandidate));
     setDeleteCandidate(null);
-    toast.success("Task moved to recycle bin. It will be deleted in 24 hours.");
+    toast.success("Moved to trash.");
   };
   const cancelDelete = () => {
     setDeleteCandidate(null);

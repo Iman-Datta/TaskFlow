@@ -1,151 +1,127 @@
 import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import {
+  inputCls,
+  primaryBtn,
+  ghostBtn,
+  labelCls,
+  linkBtn,
+} from "../../styles/auth";
 
 const API = import.meta.env.VITE_API_URL;
 
-function Login({ onLogin, onRegister, onForgot, onLoginSuccess }) {
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+function Login({ onLogin, onRegister, onForgot }) {
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const inputStyle = `
-    w-full
-    bg-white border border-zinc-300
-    dark:bg-zinc-900 dark:border-zinc-800
-    px-4 py-2.5 rounded-xl
-    text-zinc-900 placeholder:text-zinc-500
-    dark:text-zinc-100 dark:placeholder:text-zinc-500
-    focus:outline-none focus:ring-2 focus:ring-emerald-500
-    transition
-  `;
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+  const handleChange = (e) =>
+    setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
       await onLogin(formData.email, formData.password);
-      onLoginSuccess();
-    } catch (err) {
-      console.error(err);
-      alert("Login failed");
+    } catch {
+      setError("Invalid email or password.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    const url = `${API}/auth/google`;
-    window.location.href = url;
-  };
-
   return (
-    <>
-      <h2 className="text-2xl font-semibold text-center mb-6 text-zinc-900 dark:text-zinc-100">
-        Login
-      </h2>
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+          Welcome back
+        </h2>
+        <p className="text-sm text-zinc-500 mt-1">Sign in to your account</p>
+      </div>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <input
-          type="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="Email"
-          required
-          className={inputStyle}
-        />
+      {error && (
+        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 px-3 py-2 rounded-lg">
+          {error}
+        </div>
+      )}
 
-        <div className="relative">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className={labelCls}>Email</label>
           <input
-            type={showPassword ? "text" : "password"}
-            name="password"
-            value={formData.password}
+            type="email"
+            name="email"
+            value={formData.email}
             onChange={handleChange}
-            placeholder="Password"
+            placeholder="you@example.com"
             required
-            className={`${inputStyle} pr-10`}
+            className={inputCls}
           />
-
-          <button
-            type="button"
-            onClick={() => setShowPassword((prev) => !prev)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
-            {showPassword ? (
-              <AiOutlineEyeInvisible size={20} />
-            ) : (
-              <AiOutlineEye size={20} />
-            )}
-          </button>
         </div>
 
-        <button
-          type="submit"
-          className="
-            w-full
-            bg-zinc-200 hover:bg-zinc-300
-            dark:bg-zinc-800 dark:hover:bg-zinc-700
-            text-zinc-900 dark:text-white
-            py-2.5 rounded-xl font-medium
-            shadow-sm shadow-black/10
-            dark:shadow-black/30
-            transition
-          ">
-          Login
+        <div>
+          <label className={labelCls}>Password</label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="••••••••"
+              required
+              className={`${inputCls} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((p) => !p)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition"
+            >
+              {showPassword ? (
+                <AiOutlineEyeInvisible size={18} />
+              ) : (
+                <AiOutlineEye size={18} />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" disabled={loading} className={primaryBtn}>
+          {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
-      <div className="flex items-center my-6">
-        <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-800"></div>
-        <span className="px-3 text-sm text-zinc-500">OR</span>
-        <div className="flex-1 h-px bg-zinc-300 dark:bg-zinc-800"></div>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
+        <span className="text-xs text-zinc-400">or</span>
+        <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-700" />
       </div>
 
       <button
         type="button"
-        className="
-    w-full
-    bg-white border border-zinc-300
-    dark:bg-zinc-900 dark:border-zinc-800
-    py-2.5 rounded-xl
-    flex items-center justify-center gap-3
-    hover:bg-zinc-100
-    dark:hover:bg-zinc-800
-    transition
-  "
-        onClick={handleGoogleLogin}>
-        <FcGoogle size={20} />
-
-        <span className="font-medium text-zinc-700 dark:text-zinc-300">
-          Continue with Google
-        </span>
+        className={ghostBtn}
+        onClick={() => {
+          window.location.href = `${API}/auth/google`;
+        }}
+      >
+        <FcGoogle size={18} />
+        Continue with Google
       </button>
 
-      <div className="mt-6 text-sm text-zinc-500 text-center space-y-2">
-        <p>
-          Don’t have an account?{" "}
-          <button
-            onClick={onRegister}
-            className="text-emerald-500 hover:text-emerald-400 transition">
-            Create account
+      <div className="text-center space-y-2 pt-1">
+        <p className="text-sm text-zinc-500">
+          No account?{" "}
+          <button onClick={onRegister} className={linkBtn}>
+            Create one
           </button>
         </p>
-
-        <button
-          onClick={onForgot}
-          className="text-emerald-500 hover:text-emerald-400 transition">
+        <button onClick={onForgot} className={linkBtn}>
           Forgot password?
         </button>
       </div>
-    </>
+    </div>
   );
 }
 

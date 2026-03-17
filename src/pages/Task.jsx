@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Navigate } from "react-router-dom";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 import TaskList from "../components/task/TaskList";
 import TaskHeader from "../components/task/TaskHeader";
@@ -19,6 +19,7 @@ function Task() {
   const [tasks, setTasks] = useState([]);
   const [search, setSearch] = useState("");
   const [deleteCandidate, setDeleteCandidate] = useState(null);
+  const [removingIds, setRemovingIds] = useState(new Set());
 
   const [priorityFilter, setPriorityFilter] = useState("All");
 
@@ -66,26 +67,23 @@ function Task() {
   const toggleStatus = async (_id) => {
     const task = tasks.find((t) => t._id === _id);
     if (!task) return;
-
     const newStatus = task.status === "Completed" ? "Todo" : "Completed";
 
     const res = await fetchWithAuth(
       `${API}/tasks/${_id}/status`,
       {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       },
       dispatch,
       accessToken,
     );
-
-    if (!res) return;
-
+    if (!res) {
+      toast.error("Failed to update task. Please try again.");
+      return;
+    }
     const updatedTask = await res.json();
-
     const formatted = {
       _id: updatedTask._id,
       title: updatedTask.taskname,
@@ -98,14 +96,21 @@ function Task() {
 
     if (formatted.status === "Completed") {
       setTasks((prev) => prev.map((t) => (t._id === _id ? formatted : t)));
-
+      // Trigger exit animation, then remove
       setTimeout(() => {
-        setTasks((prev) => prev.filter((t) => t._id !== _id));
-      }, 500);
+        setRemovingIds((prev) => new Set([...prev, _id]));
+        setTimeout(() => {
+          setTasks((prev) => prev.filter((t) => t._id !== _id));
+          setRemovingIds((prev) => {
+            const s = new Set(prev);
+            s.delete(_id);
+            return s;
+          });
+        }, 450); // match animation duration
+      }, 300);
     } else {
       setTasks((prev) => prev.map((t) => (t._id === _id ? formatted : t)));
     }
-
     toast.success("Task completed and moved to completed tasks.");
   };
 
@@ -115,22 +120,28 @@ function Task() {
   };
   const confirmDelete = async () => {
     if (!deleteCandidate) return;
-
     const res = await fetchWithAuth(
       `${API}/tasks/${deleteCandidate}`,
-      {
-        method: "DELETE",
-      },
+      { method: "DELETE" },
       dispatch,
       accessToken,
     );
+    if (!res) {
+      return toast.error("Failed to delete task. Please try again.");
+    }
+    // Animate out first
 
-    if (!res) return;
-
-    setTasks((prev) => prev.filter((t) => t._id !== deleteCandidate));
-    setDeleteCandidate(null);
-
-    toast.success("Task moved to recycle bin. It will be deleted in 24 hours.");
+    setRemovingIds((prev) => new Set([...prev, deleteCandidate]));
+    setTimeout(() => {
+      setTasks((prev) => prev.filter((t) => t._id !== deleteCandidate));
+      setRemovingIds((prev) => {
+        const s = new Set(prev);
+        s.delete(deleteCandidate);
+        return s;
+      });
+      setDeleteCandidate(null);
+    }, 450);
+    toast.success("Moved to trash.");
   };
   const cancelDelete = () => {
     setDeleteCandidate(null);
@@ -157,7 +168,9 @@ function Task() {
       accessToken,
     );
 
-    if (!res) return;
+    if (!res) {
+      return toast.error("Failed to add task. Please try again.");
+    }
 
     const savedTask = await res.json();
 
@@ -174,7 +187,7 @@ function Task() {
     setTasks((prev) => [formatted, ...prev]);
     setShowForm(false);
 
-    toast.success("New task added.");
+    toast.success("Task added.");
   };
 
   // Edit task
@@ -211,7 +224,7 @@ function Task() {
         prev.map((task) => (task._id === _id ? formatted : task)),
       );
 
-      toast.success("Task updated.");
+      toast.success("Changes saved.");
     } catch (error) {
       console.error(error);
       toast.error("Update failed. Please try again.");
@@ -261,6 +274,7 @@ function Task() {
 
       <TaskList
         tasks={filteredTasks}
+        removingIds={removingIds} // ← add this
         deleteCandidate={deleteCandidate}
         onToggleStatus={toggleStatus}
         onDelete={requestDelete}
