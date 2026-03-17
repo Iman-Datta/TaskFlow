@@ -4,18 +4,35 @@ import TaskList from "../components/task/TaskList";
 import TaskHeader from "../components/task/TaskHeader";
 import toast from "react-hot-toast";
 
+import { useSelector, useDispatch } from "react-redux";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
+
 const API = import.meta.env.VITE_API_URL;
 
 function Completed() {
   const [completedTasks, setCompletedTasks] = useState([]);
   const [deleteCandidate, setDeleteCandidate] = useState(null);
+  const dispatch = useDispatch();
+  const accessToken = useSelector((state) => state.auth.accessToken);
 
   useEffect(() => {
-    fetch(`${API}/tasks?status=Completed&isDeleted=false`, {
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchCompleted = async () => {
+      try {
+        if (!accessToken) return;
+
+        const res = await fetchWithAuth(
+          `${API}/tasks?status=Completed&isDeleted=false`,
+          {},
+          dispatch,
+          accessToken,
+        );
+
+        if (!res) return;
+
+        const data = await res.json();
+
+        if (!Array.isArray(data)) return;
+
         const formatted = data.map((task) => ({
           _id: task._id,
           title: task.taskname,
@@ -24,22 +41,32 @@ function Completed() {
           status: task.status,
           deadline: task.deadline,
           priority: task.priority,
-          deletedAt: task.deletedAt,
         }));
 
         setCompletedTasks(formatted);
-      })
-      .catch((err) => console.error(err));
-  }, []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchCompleted();
+  }, [accessToken, dispatch]);
 
   const restoreTask = async (id) => {
     try {
-      const res = await fetch(`${API}/tasks/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ status: "Todo" }),
-      });
+      if (!accessToken) return;
+      const res = await fetchWithAuth(
+        `${API}/tasks/${id}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Todo" }),
+        },
+        dispatch,
+        accessToken,
+      );
+
+      if (!res) return;
 
       if (!res.ok) {
         throw new Error("Failed to restore task");
@@ -48,6 +75,7 @@ function Completed() {
       // remove task instantly from completed list
       setCompletedTasks((prev) => prev.filter((task) => task._id !== id));
     } catch (error) {
+      toast.error("Something went wrong");
       console.error(error);
     }
   };
@@ -58,10 +86,18 @@ function Completed() {
   };
   const confirmDelete = async () => {
     if (!deleteCandidate) return;
-    await fetch(`${API}/tasks/${deleteCandidate}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
+    if (!accessToken) return;
+    const res = await fetchWithAuth(
+      `${API}/tasks/${deleteCandidate}`,
+      {
+        method: "DELETE",
+      },
+      dispatch,
+      accessToken,
+    );
+
+    if (!res) return;
+    if (!res.ok) return;
 
     setCompletedTasks((prev) => prev.filter((t) => t._id !== deleteCandidate));
     setDeleteCandidate(null);

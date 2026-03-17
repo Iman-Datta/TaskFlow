@@ -6,6 +6,8 @@ import { Trash2, CheckCircle, Moon, Sun, Info } from "lucide-react";
 import { clearUser } from "../features/auth/authSlice";
 import { setTheme } from "../features/theme/themeSlice";
 
+import { fetchWithAuth } from "../utils/fetchWithAuth";
+
 const API = import.meta.env.VITE_API_URL;
 
 function Navbar() {
@@ -19,13 +21,22 @@ function Navbar() {
   // logout function
   const logoutUser = async () => {
     try {
-      const res = await fetch(`${API}/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+      const res = await fetchWithAuth(
+        `${API}/auth/logout`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         },
-        credentials: "include",
-      });
+        dispatch,
+        accessToken,
+      );
+
+      if (!res) return;
+      if (!res.ok) {
+        throw new Error("Failed to logout");
+      }
 
       const data = await res.json();
 

@@ -72,11 +72,6 @@ function Home() {
           Built for simplicity. Designed for productivity. TaskFlow helps you
           stay organized without overwhelming you with unnecessary features.
         </p>
-
-        <p className="text-zinc-500 dark:text-zinc-500">
-          Scroll down to test your fixed navbar behavior and shadow effects.
-          This extra section ensures your page has enough height to scroll.
-        </p>
       </section>
     </div>
   );

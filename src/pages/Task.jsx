@@ -10,9 +10,7 @@ import AddTaskForm from "../components/task/AddTaskForm";
 import TaskFilters from "../components/task/TaskFilters";
 import SearchBar from "../components/task/SearchBar";
 
-import { setAccessToken, clearUser } from "../features/auth/authSlice";
-
-import { refreshAccessToken } from "../utils/refreshAccessToken";
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -23,47 +21,25 @@ function Task() {
   const [deleteCandidate, setDeleteCandidate] = useState(null);
 
   const [priorityFilter, setPriorityFilter] = useState("All");
-  const { user, loading } = useSelector((state) => state.auth);
+
+  const { user, loading } = useSelector((state) => state.auth); // From redux
 
   const dispatch = useDispatch();
   const accessToken = useSelector((state) => state.auth.accessToken);
 
   useEffect(() => {
-    const fetchTasks = async (token) => {
-      const res = await fetch(`${API}/tasks?status=Todo&isDeleted=false`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
-      });
-
-      return res;
-    };
-
     const handleFetch = async () => {
       try {
-        let token = accessToken;
-        if (!token) {
-          dispatch(clearUser());
-          return;
-        }
+        if (!accessToken) return;
 
-        let res = await fetchTasks(token);
+        const res = await fetchWithAuth(
+          `${API}/tasks?status=Todo&isDeleted=false`,
+          {},
+          dispatch,
+          accessToken,
+        );
 
-        // if token expired
-        if (res.status === 401) {
-          const newToken = await refreshAccessToken();
-
-          if (!newToken) {
-            dispatch(clearUser());
-            return;
-          }
-
-          dispatch(setAccessToken(newToken));
-
-          // retry with new token
-          res = await fetchTasks(newToken);
-        }
+        if (!res) return;
 
         const data = await res.json();
 
@@ -93,17 +69,22 @@ function Task() {
 
     const newStatus = task.status === "Completed" ? "Todo" : "Completed";
 
-    const res = await fetch(`${API}/tasks/${_id}/status`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+    const res = await fetchWithAuth(
+      `${API}/tasks/${_id}/status`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: newStatus }),
       },
-      body: JSON.stringify({ status: newStatus }),
-      credentials: "include",
-    });
+      dispatch,
+      accessToken,
+    );
 
-    const updatedTask = await res.json(); // Responce
+    if (!res) return;
+
+    const updatedTask = await res.json();
 
     const formatted = {
       _id: updatedTask._id,
@@ -124,6 +105,7 @@ function Task() {
     } else {
       setTasks((prev) => prev.map((t) => (t._id === _id ? formatted : t)));
     }
+
     toast.success("Task completed and moved to completed tasks.");
   };
 
@@ -133,17 +115,21 @@ function Task() {
   };
   const confirmDelete = async () => {
     if (!deleteCandidate) return;
-    await fetch(`${API}/tasks/${deleteCandidate}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+
+    const res = await fetchWithAuth(
+      `${API}/tasks/${deleteCandidate}`,
+      {
+        method: "DELETE",
       },
-      credentials: "include",
-    });
+      dispatch,
+      accessToken,
+    );
+
+    if (!res) return;
 
     setTasks((prev) => prev.filter((t) => t._id !== deleteCandidate));
     setDeleteCandidate(null);
+
     toast.success("Task moved to recycle bin. It will be deleted in 24 hours.");
   };
   const cancelDelete = () => {
@@ -152,21 +138,26 @@ function Task() {
 
   // Add task from form
   const addTask = async (newTask) => {
-    const res = await fetch(`${API}/tasks`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+    const res = await fetchWithAuth(
+      `${API}/tasks`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          taskname: newTask.taskname,
+          description: newTask.description,
+          category: newTask.category,
+          deadline: newTask.deadline,
+          priority: newTask.priority,
+        }),
       },
-      body: JSON.stringify({
-        taskname: newTask.taskname,
-        description: newTask.description,
-        category: newTask.category,
-        deadline: newTask.deadline,
-        priority: newTask.priority,
-      }),
-      credentials: "include",
-    });
+      dispatch,
+      accessToken,
+    );
+
+    if (!res) return;
 
     const savedTask = await res.json();
 
@@ -181,28 +172,28 @@ function Task() {
     };
 
     setTasks((prev) => [formatted, ...prev]);
-
-    // close form
     setShowForm(false);
+
     toast.success("New task added.");
   };
 
   // Edit task
   const editTask = async (_id, editedTask) => {
     try {
-      const res = await fetch(`${API}/tasks/${_id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
+      const res = await fetchWithAuth(
+        `${API}/tasks/${_id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editedTask),
         },
-        body: JSON.stringify(editedTask),
-        credentials: "include",
-      });
+        dispatch,
+        accessToken,
+      );
 
-      if (!res.ok) {
-        throw new Error("Failed to update task");
-      }
+      if (!res) return;
 
       const updatedTask = await res.json();
 
@@ -219,6 +210,7 @@ function Task() {
       setTasks((prev) =>
         prev.map((task) => (task._id === _id ? formatted : task)),
       );
+
       toast.success("Task updated.");
     } catch (error) {
       console.error(error);

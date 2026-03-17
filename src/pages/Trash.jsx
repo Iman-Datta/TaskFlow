@@ -1,20 +1,37 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import { useSelector, useDispatch } from "react-redux";
 
 import TaskList from "../components/task/TaskList";
 import TaskHeader from "../components/task/TaskHeader";
+
+import { fetchWithAuth } from "../utils/fetchWithAuth";
 
 const API = import.meta.env.VITE_API_URL;
 
 function Trash() {
   const [trashTasks, setTrashTasks] = useState([]);
+  const dispatch = useDispatch();
+  const accessToken = useSelector((state) => state.auth.accessToken);
 
   useEffect(() => {
-    fetch(`${API}/tasks?isDeleted=true`, {
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchTrash = async () => {
+      try {
+        if (!accessToken) return;
+
+        const res = await fetchWithAuth(
+          `${API}/tasks?isDeleted=true`,
+          {},
+          dispatch,
+          accessToken,
+        );
+
+        if (!res) return;
+
+        const data = await res.json();
+
+        if (!Array.isArray(data)) return;
+
         const formatted = data.map((task) => ({
           _id: task._id,
           title: task.taskname,
@@ -27,17 +44,34 @@ function Trash() {
         }));
 
         setTrashTasks(formatted);
-      })
-      .catch((err) => console.error(err));
-  }, []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchTrash();
+  }, [accessToken, dispatch]);
 
   async function restoreTask(id) {
     try {
-      const res = await fetch(`${API}/tasks/${id}/restore`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+      // const res = await fetch(`${API}/tasks/${id}/restore`, {
+      //   method: "PATCH",
+      //   credentials: "include",
+      // });
 
+      const res = await fetchWithAuth(
+        `${API}/tasks/${id}/restore`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: "Todo" }),
+        },
+        dispatch,
+        accessToken,
+      );
+      if (!res) return;
       if (!res.ok) {
         throw new Error("Failed to restore task");
       }
