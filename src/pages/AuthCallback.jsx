@@ -7,7 +7,7 @@ import { refreshAccessToken } from "../utils/refreshAccessToken";
 
 const API = import.meta.env.VITE_API_URL;
 
-function OAuthSuccess() {
+function AuthCallback() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -53,4 +53,4 @@ function OAuthSuccess() {
   return <div>Signing you in...</div>;
 }
 
-export default OAuthSuccess;
+export default AuthCallback;
