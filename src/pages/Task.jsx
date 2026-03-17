@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Navigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -9,6 +9,10 @@ import AddTaskButton from "../components/task/AddTaskButton";
 import AddTaskForm from "../components/task/AddTaskForm";
 import TaskFilters from "../components/task/TaskFilters";
 import SearchBar from "../components/task/SearchBar";
+
+import { setAccessToken, clearUser } from "../features/auth/authSlice";
+
+import { refreshAccessToken } from "../utils/refreshAccessToken";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -21,13 +25,48 @@ function Task() {
   const [priorityFilter, setPriorityFilter] = useState("All");
   const { user, loading } = useSelector((state) => state.auth);
 
-  // Fetch all todo data
+  const dispatch = useDispatch();
+  const accessToken = useSelector((state) => state.auth.accessToken);
+
   useEffect(() => {
-    fetch(`${API}/tasks?status=Todo&isDeleted=false`, {
-      credentials: "include",
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchTasks = async (token) => {
+      const res = await fetch(`${API}/tasks?status=Todo&isDeleted=false`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      return res;
+    };
+
+    const handleFetch = async () => {
+      try {
+        let token = accessToken;
+        if (!token) {
+          dispatch(clearUser());
+          return;
+        }
+
+        let res = await fetchTasks(token);
+
+        // if token expired
+        if (res.status === 401) {
+          const newToken = await refreshAccessToken();
+
+          if (!newToken) {
+            dispatch(clearUser());
+            return;
+          }
+
+          dispatch(setAccessToken(newToken));
+
+          // retry with new token
+          res = await fetchTasks(newToken);
+        }
+
+        const data = await res.json();
+
         const formatted = data.map((task) => ({
           _id: task._id,
           title: task.taskname,
@@ -39,9 +78,13 @@ function Task() {
         }));
 
         setTasks(formatted);
-      })
-      .catch((err) => console.error(err));
-  }, [priorityFilter]);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    handleFetch();
+  }, [priorityFilter, accessToken, dispatch]);
 
   // Status update
   const toggleStatus = async (_id) => {
@@ -52,7 +95,10 @@ function Task() {
 
     const res = await fetch(`${API}/tasks/${_id}/status`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ status: newStatus }),
       credentials: "include",
     });
@@ -89,6 +135,10 @@ function Task() {
     if (!deleteCandidate) return;
     await fetch(`${API}/tasks/${deleteCandidate}`, {
       method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       credentials: "include",
     });
 
@@ -104,7 +154,10 @@ function Task() {
   const addTask = async (newTask) => {
     const res = await fetch(`${API}/tasks`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({
         taskname: newTask.taskname,
         description: newTask.description,
@@ -139,7 +192,10 @@ function Task() {
     try {
       const res = await fetch(`${API}/tasks/${_id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify(editedTask),
         credentials: "include",
       });

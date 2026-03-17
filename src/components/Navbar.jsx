@@ -13,6 +13,7 @@ function Navbar() {
   const navigate = useNavigate();
 
   const user = useSelector((state) => state.auth.user);
+  const accessToken = useSelector((state) => state.auth.accessToken);
   const theme = useSelector((state) => state.theme.theme);
 
   // logout function
@@ -20,17 +21,22 @@ function Navbar() {
     try {
       const res = await fetch(`${API}/auth/logout`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
         credentials: "include",
       });
 
       const data = await res.json();
 
-      dispatch(clearUser());
       if (!res.ok) {
         throw new Error(data.message || "Failed to logout");
       }
+
+      dispatch(clearUser());
       navigate("/");
       console.log("Logged out successfully");
+
       return data;
     } catch (err) {
       console.error(err);
@@ -56,7 +62,8 @@ function Navbar() {
       className="fixed top-0 left-0 w-full z-50
     bg-white/70 border-b border-zinc-200 shadow-sm shadow-black/10
     dark:bg-zinc-950/70 dark:border-zinc-800 dark:shadow-black/30
-    backdrop-blur-xl transition-colors duration-300">
+    backdrop-blur-xl transition-colors duration-300"
+    >
       <div className="max-w-5xl mx-auto px-6 h-20 flex justify-between items-center">
         {/* Logo */}
         <Link to="/">
@@ -65,7 +72,8 @@ function Navbar() {
               <svg
                 viewBox="0 0 32 32"
                 className="w-9 h-9 transition-transform duration-500 group-hover:rotate-90"
-                fill="none">
+                fill="none"
+              >
                 <rect
                   width="32"
                   height="32"
@@ -98,14 +106,16 @@ function Navbar() {
               <Link
                 to="/completed"
                 title="Completed Tasks"
-                className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition">
+                className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition"
+              >
                 <CheckCircle size={20} />
               </Link>
 
               <Link
                 to="/trash"
                 title="Trash"
-                className="text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition">
+                className="text-zinc-500 dark:text-zinc-400 hover:text-red-500 transition"
+              >
                 <Trash2 size={20} />
               </Link>
             </div>
@@ -117,7 +127,8 @@ function Navbar() {
             <Link
               to="/about"
               title="About"
-              className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition">
+              className="text-zinc-500 dark:text-zinc-400 hover:text-emerald-500 transition"
+            >
               <Info size={20} />
             </Link>
             {/* Theme toggle */}
@@ -128,7 +139,8 @@ function Navbar() {
             text-zinc-500 dark:text-zinc-400
             hover:text-yellow-500
             hover:bg-zinc-200 dark:hover:bg-zinc-800
-            transition-all duration-300">
+            transition-all duration-300"
+            >
               {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
             </button>
             {/* Main CTA */}
@@ -143,7 +155,8 @@ function Navbar() {
             hover:shadow-xl hover:-translate-y-0.5
             active:translate-y-0 active:shadow-md
             transition-all duration-300 ease-out
-          ">
+          "
+            >
               {user ? "My Tasks" : "Get Started"}
             </Link>
             {/* Auth */}
@@ -159,7 +172,8 @@ function Navbar() {
               after:bg-emerald-400
               after:transition-all after:duration-300
               hover:after:w-full
-              transition-all duration-200">
+              transition-all duration-200"
+              >
                 Logout
               </button>
             ) : (
@@ -174,7 +188,8 @@ function Navbar() {
               after:bg-emerald-400
               after:transition-all after:duration-300
               hover:after:w-full
-              transition-all duration-200">
+              transition-all duration-200"
+              >
                 Sign in
               </Link>
             )}

@@ -6,7 +6,7 @@ import Login from "../components/auth/Login";
 import RegisterEntry from "../components/auth/RegisterEntry";
 import ForgotPassword from "../components/auth/ForgotPassword";
 
-import { setUser } from "../features/auth/authSlice";
+import { setUser, setAccessToken } from "../features/auth/authSlice";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -28,7 +28,7 @@ function Auth() {
       const data = await res.json();
 
       if (!res.ok) {
-        // if account already exists
+        // if account already exists email not verified
         if (res.status === 409) {
           navigate("/auth");
           return;
@@ -53,8 +53,6 @@ function Auth() {
         credentials: "include",
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
         // email not verified
         if (res.status === 403) {
@@ -63,11 +61,21 @@ function Auth() {
           });
           return;
         }
+      }
 
+      const data = await res.json();
+      const token = data.accessToken;
+      if (!token) {
         throw new Error(data.message || "Failed to login");
       }
-      
+      if (token) {
+        dispatch(setAccessToken(token));
+      }
+
       const me = await fetch(`${API}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         credentials: "include",
       });
 
@@ -75,7 +83,6 @@ function Auth() {
 
       dispatch(setUser(userData.user));
       navigate("/task");
-
       return userData;
     } catch (err) {
       console.error(err);
