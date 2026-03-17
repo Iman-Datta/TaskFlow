@@ -55,10 +55,46 @@ function App() {
     checkAuth();
   }, [dispatch]);
 
+  // Paste this inside your isAuthLoading block
+
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center">
-        <div className="w-5 h-5 rounded-full border-2 border-zinc-300 border-t-emerald-500 animate-spin" />
+      <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Ambient background glows */}
+        <div className="absolute w-72 h-72 rounded-full bg-emerald-500 opacity-10 blur-[80px] -top-16 -left-16 animate-pulse" />
+        <div className="absolute w-56 h-56 rounded-full bg-indigo-500 opacity-10 blur-[80px] -bottom-10 -right-10 animate-pulse [animation-delay:1s]" />
+        <div className="absolute w-40 h-40 rounded-full bg-amber-400 opacity-10 blur-[60px] bottom-20 left-10 animate-pulse [animation-delay:1.8s]" />
+
+        {/* Orbit system */}
+        <div className="relative w-40 h-40">
+          <div className="absolute inset-0 rounded-full border border-emerald-500/30 border-t-emerald-500 animate-spin [animation-duration:1.1s]" />
+          <div className="absolute inset-4 rounded-full border border-indigo-500/20 border-t-indigo-500 animate-spin [animation-duration:1.8s] [animation-direction:reverse]" />
+          <div className="absolute inset-8 rounded-full border border-amber-400/20 border-t-amber-400 animate-spin [animation-duration:2.6s]" />
+          <div className="absolute inset-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-emerald-500 shadow-[0_0_20px_#10b981aa] animate-pulse" />
+        </div>
+
+        {/* Label */}
+        <div className="mt-10 flex flex-col items-center gap-3">
+          <span className="text-xs font-bold tracking-[0.22em] uppercase text-zinc-500 dark:text-zinc-300 font-serif animate-pulse">
+            Loading
+          </span>
+
+          <div className="flex gap-1.5">
+            {["bg-emerald-500", "bg-indigo-500", "bg-amber-400"].map(
+              (color, i) => (
+                <div
+                  key={i}
+                  className={`w-1.5 h-1.5 rounded-full ${color} animate-bounce`}
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ),
+            )}
+          </div>
+
+          <div className="mt-1 w-28 h-0.5 bg-zinc-300 dark:bg-zinc-800 rounded-full overflow-hidden">
+            <div className="h-full w-16 rounded-full bg-gradient-to-r from-emerald-500 to-indigo-500 animate-[progress_2s_ease-in-out_infinite]" />
+          </div>
+        </div>
       </div>
     );
   }

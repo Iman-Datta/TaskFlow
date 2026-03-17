@@ -7,6 +7,9 @@ import "./index.css";
 import { Provider } from "react-redux";
 import { store } from "./app/store";
 
+const savedTheme = localStorage.getItem("theme") || "dark";
+document.documentElement.classList.toggle("dark", savedTheme === "dark");
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <Provider store={store}>

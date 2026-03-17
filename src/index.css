@@ -113,3 +113,14 @@
 [data-sonner-toast][data-type="info"]::after {
   background: #3b82f6;
 }
+html {
+  background-color: #09090b; /* zinc-950 — your dark bg */
+}
+
+html.dark body {
+  background-color: #09090b;
+}
+
+html:not(.dark) body {
+  background-color: #f4f4f5; /* zinc-100 — your light bg */
+}

@@ -94,7 +94,7 @@ function Auth() {
               Organize tasks, hit deadlines, and ship without the noise.
             </p>
           </div>
-          <p className="text-zinc-600 text-xs">© 2025 TaskFlow</p>
+          <p className="text-zinc-600 text-xs">Built by Iman Datta</p>
         </div>
 
         {/* ── Right form panel ── */}

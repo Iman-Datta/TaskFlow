@@ -1,4 +1,5 @@
 import TaskItem from "./TaskItem";
+import EmptyState from "./EmptyState";
 
 function TaskList({
   tasks,
@@ -12,6 +13,9 @@ function TaskList({
   onUpdate,
   onRestore,
 }) {
+  if (tasks.length === 0) {
+    return <EmptyState variant={variant ?? "tasks"} />;
+  }
   return (
     <div className="space-y-4">
       {tasks.map((task) => (
