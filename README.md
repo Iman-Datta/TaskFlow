@@ -36,6 +36,28 @@ This is the **frontend** of TaskFlow — a modern, full-stack productivity app. 
 The design prioritizes speed, accessibility, and a distraction-free user experience — using Radix UI primitives, smooth toasts via Sonner, and elegant typography with Cormorant Garamond.
 
 ---
+## 📸 Preview
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <img src="./screenshots/Home page.jpg" width="280" alt="Home Page" /><br/>
+        <sub><b>Home Page</b></sub>
+      </td>
+      <td align="center">
+        <img src="./screenshots/tasks.jpeg" width="280" alt="Task Management" /><br/>
+        <sub><b>Task Management</b></sub>
+      </td>
+      <td align="center">
+        <img src="./screenshots/Complete task.jpeg" width="280" alt="Completed Tasks" /><br/>
+        <sub><b>Completed Tasks</b></sub>
+      </td>
+    </tr>
+  </table>
+</div>
+
+---
 
 ## ✨ Features
 
