@@ -160,19 +160,19 @@ function Home() {
       </section>
 
       {/* ── Features ── */}
-      <section className="py-20 border-t border-zinc-100 dark:border-zinc-800/60">
+      <section className="py-20 bg-zinc-50 border-t border-b border-zinc-200 dark:bg-zinc-900/30 dark:border-zinc-800/60">
         <div className="max-w-6xl mx-auto px-6">
           {/* Section label */}
           <div ref={cardsRef} className="text-center mb-12">
             <p
               className="text-[11px] font-semibold uppercase tracking-widest
-              text-zinc-400 dark:text-zinc-600 mb-3"
+        text-zinc-400 dark:text-zinc-600 mb-3"
             >
               Everything you need
             </p>
             <h2
               className="text-2xl font-bold tracking-tight
-              text-zinc-900 dark:text-zinc-100"
+        text-zinc-900 dark:text-zinc-100"
             >
               Built for how you actually work
             </h2>
@@ -183,12 +183,13 @@ function Home() {
               <div
                 key={title}
                 className="group p-6 rounded-2xl
-                  border border-zinc-100 dark:border-zinc-800/60
-                  bg-zinc-50/50 dark:bg-zinc-900/40
-                  hover:border-emerald-200 dark:hover:border-emerald-900
-                  hover:bg-white dark:hover:bg-zinc-900/70
-                  hover:-translate-y-1
-                  transition-all duration-250"
+            border border-zinc-200 dark:border-zinc-800/60
+            bg-white dark:bg-zinc-900/40
+            shadow-sm dark:shadow-none
+            hover:border-emerald-200 dark:hover:border-emerald-900
+            hover:bg-white dark:hover:bg-zinc-900/70
+            hover:-translate-y-1 hover:shadow-md
+            transition-all duration-250"
                 style={{
                   opacity: 0,
                   animation: `fadeUpCard 0.55s ease forwards`,
@@ -198,12 +199,12 @@ function Home() {
                 {/* Icon */}
                 <div
                   className="w-10 h-10 rounded-xl mb-5
-                  bg-emerald-500/[0.08] dark:bg-emerald-500/[0.06]
-                  border border-emerald-500/15 dark:border-emerald-500/12
-                  flex items-center justify-center
-                  text-emerald-500 dark:text-emerald-400
-                  group-hover:bg-emerald-500/[0.12] group-hover:border-emerald-500/25
-                  transition-all duration-200"
+            bg-emerald-500/10 dark:bg-emerald-500/[0.06]
+            border border-emerald-500/20 dark:border-emerald-500/12
+            flex items-center justify-center
+            text-emerald-500 dark:text-emerald-400
+            group-hover:bg-emerald-500/[0.15] group-hover:border-emerald-500/30
+            transition-all duration-200"
                 >
                   {icon}
                 </div>
@@ -218,7 +219,6 @@ function Home() {
           </div>
         </div>
       </section>
-
       {/* ── Bottom CTA ── */}
       <section className="py-28 px-6 text-center">
         <div className="max-w-xl mx-auto">

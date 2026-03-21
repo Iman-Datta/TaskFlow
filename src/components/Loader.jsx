@@ -1,287 +1,320 @@
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
 
-const PHASES = [
+const STEPS = [
   {
     at: 0,
-    label: "Waking up",
-    description: "Server is coming online from sleep.",
+    pct: 0,
+    label: "Starting up",
+    msg: "Just a moment while we set things up.",
   },
   {
-    at: 22,
-    label: "Connecting",
-    description: "Establishing a secure connection.",
+    at: 12,
+    pct: 22,
+    label: "Loading files",
+    msg: "Fetching everything you need.",
   },
   {
-    at: 58,
-    label: "Authenticating",
-    description: "Verifying your session.",
+    at: 28,
+    pct: 42,
+    label: "Checking settings",
+    msg: "Making sure it's just right for you.",
   },
+  { at: 48, pct: 65, label: "Almost there", msg: "We're in the home stretch!" },
   {
-    at: 88,
-    label: "Almost ready",
-    description: "Loading your workspace.",
+    at: 68,
+    pct: 80,
+    label: "Finalising",
+    msg: "Tying up the last few things…",
   },
 ];
 
-/* ── thin 1px progress line at very top ── */
-function TopBar({ pct }) {
-  return (
-    <div className="fixed top-0 left-0 right-0 z-[99999] h-[2px] bg-zinc-200 dark:bg-zinc-800">
-      <motion.div
-        className="h-full bg-emerald-500 relative"
-        initial={{ width: "0%" }}
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 1, ease: [0.25, 0.46, 0.45, 0.94] }}
-      >
-        {/* glow tip */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-6 h-[6px] rounded-full bg-emerald-400 blur-sm opacity-80" />
-      </motion.div>
-    </div>
-  );
+const TITLES = [
+  "Getting things ready…",
+  "Loading your files…",
+  "Checking your settings…",
+  "Almost ready!",
+  "Just finishing up…",
+];
+
+function fakeBackendCall(delay = 5200) {
+  return new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-/* ── step row ── */
-function Steps({ phaseIdx }) {
-  return (
-    <div className="flex flex-col gap-0">
-      {PHASES.map((p, i) => {
-        const done = i < phaseIdx;
-        const active = i === phaseIdx;
+export default function LoadingScreen({ onComplete }) {
+  const [progress, setProgress] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [msgVisible, setMsgVisible] = useState(true);
+  const [done, setDone] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
 
-        return (
-          <motion.div
-            key={p.label}
-            animate={{ opacity: i > phaseIdx ? 0.38 : 1 }}
-            transition={{ duration: 0.5 }}
-            className={`
-              flex items-center gap-4 py-3
-              ${i < PHASES.length - 1 ? "border-b border-zinc-200 dark:border-zinc-800" : ""}
-            `}
-          >
-            {/* icon */}
-            <div className="w-5 flex justify-center flex-shrink-0">
-              <AnimatePresence mode="wait">
-                {done ? (
-                  <motion.svg
-                    key="check"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  >
-                    <circle
-                      cx="8"
-                      cy="8"
-                      r="7"
-                      stroke="#10b981"
-                      strokeWidth="1.5"
-                    />
-                    <motion.path
-                      d="M5 8.2L7.2 10.4L11 6"
-                      stroke="#10b981"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      fill="none"
-                      initial={{ pathLength: 0 }}
-                      animate={{ pathLength: 1 }}
-                      transition={{ duration: 0.3, delay: 0.1 }}
-                    />
-                  </motion.svg>
-                ) : active ? (
-                  <motion.div
-                    key="dot"
-                    className="w-2 h-2 rounded-full bg-emerald-500"
-                    animate={{ scale: [1, 1.5, 1], opacity: [1, 0.5, 1] }}
-                    transition={{ duration: 1.2, repeat: Infinity }}
-                    exit={{ scale: 0 }}
-                  />
-                ) : (
-                  <motion.div
-                    key="idle"
-                    className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  />
-                )}
-              </AnimatePresence>
-            </div>
+  // All mutable state in refs so interval closure never goes stale
+  const tickRef = useRef(0);
+  const progressRef = useRef(0);
+  const stepIdxRef = useRef(0);
+  const backendDone = useRef(false);
+  const finishingRef = useRef(false);
+  const intervalRef = useRef(null);
 
-            {/* text */}
-            <div className="flex-1 min-w-0">
-              <p
-                className={`
-                text-sm leading-none mb-0
-                ${
-                  active
-                    ? "font-semibold text-zinc-900 dark:text-zinc-100"
-                    : done
-                      ? "font-medium text-emerald-600 dark:text-emerald-400"
-                      : "font-normal text-zinc-400 dark:text-zinc-600"
-                }
-                transition-all duration-400
-              `}
-              >
-                {p.label}
-              </p>
-              <AnimatePresence>
-                {active && (
-                  <motion.p
-                    initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                    animate={{ opacity: 1, height: "auto", marginTop: 3 }}
-                    exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="text-xs text-zinc-500 dark:text-zinc-500 leading-none overflow-hidden"
-                  >
-                    {p.description}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+  function smoothSetProgress(target) {
+    progressRef.current = target;
+    setProgress(Math.round(target));
+  }
 
-            {/* right label */}
-            <div className="flex-shrink-0">
-              <AnimatePresence mode="wait">
-                {done ? (
-                  <motion.span
-                    key="done"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-[11px] font-medium text-emerald-500"
-                  >
-                    Done
-                  </motion.span>
-                ) : active ? (
-                  <motion.span
-                    key="progress"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-[11px] text-zinc-400 dark:text-zinc-500"
-                  >
-                    In progress
-                  </motion.span>
-                ) : null}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-}
+  function changeStep(idx) {
+    stepIdxRef.current = idx;
+    setStepIdx(idx);
+    setMsgVisible(false);
+    setTimeout(() => setMsgVisible(true), 200);
+  }
 
-/* ── main ── */
-export default function Loader({ label = "Loading application" }) {
-  const [elapsed, setElapsed] = useState(0);
-  const [phaseIdx, setPhaseIdx] = useState(0);
+  function finishUp() {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setIsFinishing(true);
+    clearInterval(intervalRef.current);
+
+    // Show final step
+    stepIdxRef.current = 4;
+    setStepIdx(4);
+    setMsgVisible(false);
+    setTimeout(() => setMsgVisible(true), 200);
+
+    // Rush from current position → 100%
+    const rush = setInterval(() => {
+      const next = Math.min(100, progressRef.current + 3);
+      smoothSetProgress(next);
+      if (next >= 100) {
+        clearInterval(rush);
+        setTimeout(() => {
+          setFadeOut(true);
+          setTimeout(() => {
+            setDone(true);
+            onComplete?.();
+          }, 600);
+        }, 400);
+      }
+    }, 25);
+  }
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setElapsed((e) => {
-        const n = e + 1;
-        const next = PHASES.reduce((acc, p, i) => (n >= p.at ? i : acc), 0);
-        setPhaseIdx(next);
-        return n;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
+    // Replace fakeBackendCall with your real API call
+    fakeBackendCall(5200).then(() => {
+      backendDone.current = true;
+    });
 
-  const pct = Math.min(99, Math.round((elapsed / 120) * 100));
-  const remaining = Math.max(0, 120 - elapsed);
-  const timeStr =
-    remaining > 0
-      ? `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`
-      : "—";
+    intervalRef.current = setInterval(() => {
+      tickRef.current += 1;
+      const t = tickRef.current;
+
+      // Determine current step from tick
+      const nextStepIdx = STEPS.reduce((acc, s, i) => (t >= s.at ? i : acc), 0);
+      if (nextStepIdx !== stepIdxRef.current) {
+        changeStep(nextStepIdx);
+      }
+
+      // Soft cap: bar won't cross into the next step's range until backend fires
+      const currentStep = STEPS[nextStepIdx];
+      const nextStep = STEPS[nextStepIdx + 1];
+      const softCap = backendDone.current
+        ? 100
+        : nextStep
+          ? nextStep.pct - 3
+          : 78;
+      const natural = currentStep.pct + Math.min(t - currentStep.at, 10) * 1.2;
+      const newPct = Math.min(natural, softCap);
+
+      if (newPct > progressRef.current) {
+        smoothSetProgress(newPct);
+      }
+
+      // Backend done + we're past 60% → rush to 100%
+      if (
+        backendDone.current &&
+        progressRef.current >= 60 &&
+        !finishingRef.current
+      ) {
+        finishUp();
+      }
+    }, 350);
+
+    return () => clearInterval(intervalRef.current);
+  }, []); // empty — interval reads from refs only, never stale
+
+  if (done) return null;
 
   return (
-    <>
-      <TopBar pct={pct} />
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f5f4f0",
+        fontFamily: "'DM Sans', sans-serif",
+        transition: "opacity 0.6s ease",
+        opacity: fadeOut ? 0 : 1,
+      }}
+    >
+      <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet"
+      />
 
-      <div className="fixed inset-0 z-[9998] bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center transition-colors duration-300">
-        {/* very subtle center vignette — same as your page bg, no extra color */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 360,
+          padding: "0 24px",
+          textAlign: "center",
+        }}
+      >
         <div
-          className="absolute inset-0 pointer-events-none"
           style={{
-            background:
-              "radial-gradient(ellipse 60% 55% at 50% 50%, transparent 30%, var(--vignette, rgba(0,0,0,0.015)) 100%)",
+            marginBottom: 28,
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <SpinIcon progress={progress} />
+        </div>
+
+        <h2
+          key={stepIdx}
+          style={{
+            fontSize: 22,
+            fontWeight: 600,
+            color: "#111",
+            margin: "0 0 8px",
+            letterSpacing: "-0.4px",
+            animation: "fadeSlideUp 0.35s ease forwards",
+          }}
+        >
+          {TITLES[stepIdx]}
+        </h2>
+
+        <p
+          style={{
+            fontSize: 14,
+            color: "#888",
+            margin: "0 0 32px",
+            lineHeight: 1.6,
+            minHeight: 44,
+            transition: "opacity 0.25s ease",
+            opacity: msgVisible ? 1 : 0,
+          }}
+        >
+          {isFinishing
+            ? "Server responded — wrapping up!"
+            : STEPS[stepIdx]?.msg}
+        </p>
+
+        <div
+          style={{
+            background: "#e2e0d8",
+            borderRadius: 100,
+            height: 6,
+            overflow: "hidden",
+            marginBottom: 10,
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${progress}%`,
+              background: "#111",
+              borderRadius: 100,
+              transition: "width 0.4s cubic-bezier(0.25,0.46,0.45,0.94)",
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ fontSize: 12, color: "#aaa" }}>
+            {STEPS[stepIdx]?.label}
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
+            {progress}%
+          </span>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes fadeSlideUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          to { stroke-dashoffset: -200; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function SpinIcon({ progress }) {
+  const r = 22;
+  const circ = 2 * Math.PI * r;
+  const filled = (progress / 100) * circ;
+
+  return (
+    <div
+      style={{
+        width: 60,
+        height: 60,
+        borderRadius: "50%",
+        background: "#fff",
+        border: "1px solid #e5e3de",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+      }}
+    >
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <circle
+          cx="24"
+          cy="24"
+          r={r}
+          stroke="#e2e0d8"
+          strokeWidth="3"
+          fill="none"
+        />
+        <circle
+          cx="24"
+          cy="24"
+          r={r}
+          stroke="#111"
+          strokeWidth="3"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${filled} ${circ - filled}`}
+          strokeDashoffset={circ / 4}
+          style={{
+            transition:
+              "stroke-dasharray 0.4s cubic-bezier(0.25,0.46,0.45,0.94)",
           }}
         />
-
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="relative z-10 w-full max-w-sm mx-6"
-        >
-          {/* ── header ── */}
-          <div className="mb-8">
-            {/* status pill — same style as your existing badges */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/40 mb-5">
-              <motion.div
-                className="w-1.5 h-1.5 rounded-full bg-emerald-500"
-                animate={{ opacity: [1, 0.3, 1] }}
-                transition={{ duration: 1.3, repeat: Infinity }}
-              />
-              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest">
-                {label}
-              </span>
-            </div>
-
-            {/* headline */}
-            <AnimatePresence mode="wait">
-              <motion.h1
-                key={PHASES[phaseIdx].label}
-                initial={{ opacity: 0, y: 8, filter: "blur(4px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight leading-tight mb-2"
-              >
-                {PHASES[phaseIdx].label}
-              </motion.h1>
-            </AnimatePresence>
-
-            <p className="text-sm text-zinc-500 dark:text-zinc-500 leading-relaxed">
-              Free-tier server is waking up. This is a one-time cold start.
-            </p>
-          </div>
-
-          {/* ── card — exactly your project's card style ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: 0.15,
-              duration: 0.5,
-              ease: [0.22, 1, 0.36, 1],
-            }}
-            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-lg shadow-black/10 dark:shadow-black/30"
-          >
-            <Steps phaseIdx={phaseIdx} />
-          </motion.div>
-
-          {/* ── footer ── */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="flex items-center justify-between mt-5 px-1"
-          >
-            <span className="text-xs text-zinc-400 dark:text-zinc-600">
-              Render · Free tier · Cold start
-            </span>
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-500 tabular-nums">
-              ~{timeStr}
-            </span>
-          </motion.div>
-        </motion.div>
-      </div>
-    </>
+        <circle
+          cx="24"
+          cy="24"
+          r={r}
+          stroke="#bbb"
+          strokeWidth="1.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray="8 62"
+          style={{ animation: "spin 1.4s linear infinite" }}
+        />
+      </svg>
+    </div>
   );
 }

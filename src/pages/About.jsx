@@ -1,199 +1,189 @@
-import { Github, Linkedin, Mail } from "lucide-react";
+import { Github, Linkedin, Mail, ArrowRight, ExternalLink } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-const skills = [
+const techStack = [
   "React",
   "Node.js",
   "Express",
   "MongoDB",
   "Redux",
   "TailwindCSS",
-  "Arduino",
-  "IoT",
   "REST APIs",
   "JavaScript",
 ];
 
-const focusAreas = [
-  { title: "Backend", sub: "APIs · Auth · Databases" },
-  { title: "IoT & Hardware", sub: "Arduino · Embedded systems" },
-  { title: "Frontend", sub: "React · Redux · Tailwind" },
-  { title: "AI tools", sub: "AI-powered apps · Integrations" },
-];
-
-// Hook: animate element in when it scrolls into view
-function useFadeIn(delay = 0) {
+function useFadeUp(delay = 0) {
   const ref = useRef(null);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
     el.style.opacity = "0";
-    el.style.transform = "translateY(20px)";
-    el.style.transition = `opacity 0.6s ease ${delay}ms, transform 0.6s ease ${delay}ms`;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          el.style.opacity = "1";
-          el.style.transform = "translateY(0)";
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 },
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    el.style.transform = "translateY(28px)";
+    el.style.transition = `opacity 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms, transform 0.7s cubic-bezier(0.16,1,0.3,1) ${delay}ms`;
+
+    const ob = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        el.style.opacity = "1";
+        el.style.transform = "translateY(0)";
+        ob.disconnect();
+      }
+    });
+
+    ob.observe(el);
+    return () => ob.disconnect();
   }, [delay]);
+
   return ref;
 }
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500 dark:text-zinc-600">
-        {children}
-      </span>
-      <div className="flex-1 h-px bg-zinc-200 dark:bg-zinc-800" />
-    </div>
-  );
+function useStaggerChildren(stagger = 60, baseDelay = 0) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const container = ref.current;
+    if (!container) return;
+
+    const children = Array.from(container.children);
+
+    children.forEach((child, i) => {
+      child.style.opacity = "0";
+      child.style.transform = "translateY(14px)";
+      child.style.transition = `opacity 0.45s ease ${baseDelay + i * stagger}ms, transform 0.45s ease ${baseDelay + i * stagger}ms`;
+    });
+
+    const ob = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        children.forEach((child) => {
+          child.style.opacity = "1";
+          child.style.transform = "translateY(0)";
+        });
+        ob.disconnect();
+      }
+    });
+
+    ob.observe(container);
+    return () => ob.disconnect();
+  }, [stagger, baseDelay]);
+
+  return ref;
+}
+
+function Divider() {
+  return <div className="h-px bg-zinc-100 dark:bg-zinc-800/80 my-10" />;
 }
 
 function About() {
-  const heroRef = useFadeIn(50);
-  const quoteRef = useFadeIn(100);
-  const focusRef = useFadeIn(150);
-  const skillsRef = useFadeIn(200);
-  const connectRef = useFadeIn(250);
+  const heroRef = useFadeUp(0);
+  const projectRef = useFadeUp(80);
+  const stackRef = useFadeUp(140);
+  const ctaRef = useFadeUp(180);
+  const connectRef = useFadeUp(220);
+  const tagsRef = useStaggerChildren(55, 200);
+  const statsRef = useStaggerChildren(80, 100);
 
   return (
     <div className="min-h-screen pt-28 pb-24 px-6 bg-white dark:bg-zinc-950 transition-colors duration-300">
-      <div className="max-w-2xl mx-auto space-y-10">
-        {/* ── Hero ── */}
-        <div ref={heroRef} className="flex items-center gap-5">
-          {/* Avatar */}
+      <div className="max-w-2xl mx-auto">
+        {/* Hero */}
+        <div ref={heroRef} className="mb-10">
           <div
-            className="w-16 h-16 rounded-full flex-shrink-0
-            border-2 border-emerald-500/30 dark:border-emerald-500/20
-            bg-emerald-500/10 dark:bg-emerald-500/[0.07]
-            flex items-center justify-center"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-6
+            bg-emerald-500/[0.07] dark:bg-emerald-500/[0.06]
+            border border-emerald-500/[0.15]
+            text-[11px] font-semibold text-emerald-600 uppercase tracking-widest"
           >
-            <span className="text-xl font-bold tracking-tight text-emerald-500">
-              ID
-            </span>
+            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            First deployed project · MERN Stack
           </div>
 
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-              Iman Datta
-            </h1>
-            {/* Status pill */}
-            <div
-              className="inline-flex items-center gap-2 mt-1.5
-              px-3 py-1 rounded-full text-xs font-medium
-              bg-emerald-500/10 dark:bg-emerald-500/[0.08]
-              border border-emerald-500/20 dark:border-emerald-500/15
-              text-emerald-600 dark:text-emerald-400"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Available for opportunities
-            </div>
-          </div>
-        </div>
+          <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
+            TaskFlow
+          </h1>
 
-        {/* ── Quote block ── */}
-        <div
-          ref={quoteRef}
-          className="flex gap-3 p-4 rounded-xl
-            bg-zinc-50 dark:bg-zinc-900/60
-            border border-zinc-200 dark:border-zinc-800"
-        >
-          <div className="w-[3px] rounded-full flex-shrink-0 self-stretch bg-emerald-500" />
-          <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 italic">
-            CSE (IoT) student building modern web apps and experimenting with
-            new tech. Backend-first mindset — APIs, auth systems, databases.
-            When I'm not coding, I'm wiring up Arduino projects where hardware
-            and software meet to solve real problems.
+          <p className="text-[15px] text-zinc-500 dark:text-zinc-400 max-w-lg">
+            A minimalist task manager built with the MERN stack.
           </p>
         </div>
 
-        {/* ── Focus areas ── */}
-        <div ref={focusRef}>
-          <SectionLabel>Focus areas</SectionLabel>
-          <div className="grid grid-cols-2 gap-3">
-            {focusAreas.map(({ title, sub }, i) => (
-              <div
-                key={title}
-                className="p-3.5 rounded-xl
-                  border border-zinc-200 dark:border-zinc-800
-                  bg-white dark:bg-zinc-900/40
-                  hover:border-emerald-300 dark:hover:border-emerald-800
-                  hover:-translate-y-0.5 hover:shadow-sm
-                  transition-all duration-200"
-                style={{
-                  transitionDelay: `${i * 40}ms`,
-                }}
-              >
-                <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-0.5">
-                  {title}
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-500">
-                  {sub}
-                </p>
-              </div>
-            ))}
-          </div>
+        {/* Stats */}
+        <div ref={statsRef} className="flex gap-6 mb-10">
+          {[
+            { value: "MERN", label: "Stack" },
+            { value: "Redux", label: "State" },
+            { value: "Tailwind", label: "Styling" },
+            { value: "Free", label: "Pricing" },
+          ].map(({ value, label }) => (
+            <div key={label}>
+              <p className="font-bold">{value}</p>
+              <p className="text-xs text-zinc-400">{label}</p>
+            </div>
+          ))}
         </div>
 
-        {/* ── Skills ── */}
-        <div ref={skillsRef}>
-          <SectionLabel>Skills</SectionLabel>
-          <div className="flex flex-wrap gap-2">
-            {skills.map((skill, i) => (
-              <span
-                key={skill}
-                className="px-3 py-1.5 rounded-lg text-sm font-medium
-                  border border-zinc-200 dark:border-zinc-800
-                  bg-white dark:bg-zinc-900/40
-                  text-zinc-600 dark:text-zinc-400
-                  hover:border-emerald-300 dark:hover:border-emerald-700
-                  hover:text-emerald-600 dark:hover:text-emerald-400
-                  hover:-translate-y-0.5
-                  transition-all duration-200 cursor-default"
-                style={{
-                  // staggered entrance via inline style since Tailwind
-                  // can't generate arbitrary delay values dynamically
-                  opacity: 0,
-                  animation: `skillIn 0.4s ease forwards`,
-                  animationDelay: `${i * 45}ms`,
-                }}
-              >
-                {skill}
+        <Divider />
+
+        {/* About */}
+        <div ref={projectRef} className="mb-10">
+          <p className="text-sm text-zinc-500">
+            TaskFlow is my first full-stack project. Built to understand real
+            app structure.
+          </p>
+        </div>
+
+        {/* Tech */}
+        <div ref={stackRef} className="mb-10">
+          <div ref={tagsRef} className="flex flex-wrap gap-2">
+            {techStack.map((tech) => (
+              <span key={tech} className="px-3 py-1 border rounded">
+                {tech}
               </span>
             ))}
           </div>
         </div>
 
-        {/* ── Connect ── */}
+        <Divider />
+
+        {/* Developer */}
+        <div ref={ctaRef} className="mb-10">
+          <p className="text-sm text-zinc-500 mb-4">Built by Iman Datta.</p>
+
+          {/* ❌ Removed useless button */}
+          {/* Only useful link kept */}
+          <a
+            href="https://github.com/Iman-Datta/TaskFlow"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 px-5 py-2 border rounded"
+          >
+            <ExternalLink size={14} />
+            View source
+          </a>
+        </div>
+
+        <Divider />
+
+        {/* Connect */}
         <div ref={connectRef}>
-          <SectionLabel>Connect</SectionLabel>
           <div className="grid grid-cols-3 gap-3">
             {[
               {
-                icon: <Github size={17} />,
+                icon: <Github size={16} />,
                 label: "GitHub",
-                value: "@imandatta",
-                href: "https://github.com",
+                value: "@Iman-Datta",
+                href: "https://github.com/Iman-Datta",
               },
               {
-                icon: <Linkedin size={17} />,
+                icon: <Linkedin size={16} />,
                 label: "LinkedIn",
                 value: "Iman Datta",
-                href: "https://linkedin.com",
+                href: "https://www.linkedin.com/in/iman-datta-161615307/",
               },
               {
-                icon: <Mail size={17} />,
+                icon: <Mail size={16} />,
                 label: "Email",
                 value: "Say hello",
-                href: "mailto:yourmail@gmail.com",
+                href: "https://mail.google.com/mail/?view=cm&fs=1&to=dattaiman56@gmail.com",
               },
             ].map(({ icon, label, value, href }) => (
               <a
@@ -201,49 +191,16 @@ function About() {
                 href={href}
                 target="_blank"
                 rel="noreferrer"
-                className="group flex flex-col items-center gap-2 p-4 rounded-xl
-                  border border-zinc-200 dark:border-zinc-800
-                  bg-white dark:bg-zinc-900/40
-                  hover:border-emerald-300 dark:hover:border-emerald-700
-                  hover:-translate-y-1 hover:shadow-md hover:shadow-black/5
-                  dark:hover:shadow-black/20
-                  transition-all duration-200 text-center no-underline"
+                className="text-center border p-3 rounded"
               >
-                <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center
-                  bg-zinc-100 dark:bg-zinc-800
-                  text-zinc-500 dark:text-zinc-400
-                  group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/[0.08]
-                  group-hover:text-emerald-500 dark:group-hover:text-emerald-400
-                  transition-all duration-200"
-                >
-                  {icon}
-                </div>
-                <div>
-                  <p className="text-[11px] text-zinc-400 dark:text-zinc-600 mb-0.5">
-                    {label}
-                  </p>
-                  <p
-                    className="text-sm font-medium text-zinc-700 dark:text-zinc-300
-                    group-hover:text-emerald-600 dark:group-hover:text-emerald-400
-                    transition-colors duration-200"
-                  >
-                    {value}
-                  </p>
-                </div>
+                {icon}
+                <p>{label}</p>
+                <p className="text-xs text-zinc-500">{value}</p>
               </a>
             ))}
           </div>
         </div>
       </div>
-
-      {/* Keyframe for skill pill stagger — injected once */}
-      <style>{`
-        @keyframes skillIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 }

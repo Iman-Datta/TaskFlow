@@ -177,19 +177,21 @@ function Navbar() {
             <div className="w-px h-[18px] mx-1 bg-zinc-200 dark:bg-zinc-700/60" />
 
             {/* CTA */}
-            <Link
-              to="/task"
-              className="h-[34px] px-4 rounded-lg text-[13px] font-medium
-                border border-emerald-500/30 dark:border-emerald-500/20
-                bg-emerald-500/[0.08] dark:bg-emerald-500/[0.06]
-                text-emerald-700 dark:text-emerald-400
-                hover:bg-emerald-500/[0.14] dark:hover:bg-emerald-500/[0.12]
-                hover:border-emerald-500/50
-                flex items-center
-                transition-all duration-150"
-            >
-              {user ? "My Tasks" : "Get Started"}
-            </Link>
+            {user && (
+              <Link
+                to="/task"
+                className="h-[34px] px-4 rounded-lg text-[13px] font-medium
+      border border-emerald-500/30 dark:border-emerald-500/20
+      bg-emerald-500/[0.08] dark:bg-emerald-500/[0.06]
+      text-emerald-700 dark:text-emerald-400
+      hover:bg-emerald-500/[0.14] dark:hover:bg-emerald-500/[0.12]
+      hover:border-emerald-500/50
+      flex items-center
+      transition-all duration-150"
+              >
+                My Tasks
+              </Link>
+            )}
 
             {/* ── Logged out: Sign in ── */}
             {!user && (

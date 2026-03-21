@@ -5,6 +5,9 @@ import Login from "../components/auth/Login";
 import RegisterEntry from "../components/auth/RegisterEntry";
 import ForgotPassword from "../components/auth/ForgotPassword";
 import { setUser, setAccessToken } from "../features/auth/authSlice";
+import { useSelector } from "react-redux";
+import { useEffect } from "react";
+import { X } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -12,6 +15,13 @@ function Auth() {
   const [view, setView] = useState("login");
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+
+  useEffect(() => {
+    if (user) {
+      navigate("/task");
+    }
+  }, [user, navigate]);
 
   const registerUser = async (email, password) => {
     try {
@@ -21,7 +31,9 @@ function Auth() {
         credentials: "include",
         body: JSON.stringify({ email, password }),
       });
+
       const data = await res.json();
+
       if (!res.ok) {
         if (res.status === 409) {
           navigate("/auth");
@@ -29,6 +41,7 @@ function Auth() {
         }
         throw new Error(data.message || "Registration failed");
       }
+
       navigate("/checkEmail", { state: { email } });
     } catch (error) {
       console.error(error);
@@ -43,37 +56,42 @@ function Auth() {
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
+
       if (!res.ok && res.status === 403) {
         navigate("/checkEmail", { state: { email } });
         return;
       }
+
       const data = await res.json();
       const token = data.accessToken;
+
       if (!token) throw new Error(data.message || "Failed to login");
+
       dispatch(setAccessToken(token));
+
       const me = await fetch(`${API}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
         credentials: "include",
       });
+
       const userData = await me.json();
       dispatch(setUser(userData.user));
+
       navigate("/task");
     } catch (err) {
       console.error(err);
-      throw err;
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950 px-4 transition-colors duration-300">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-[680px] flex rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-xl shadow-black/10 dark:shadow-black/40">
-        {/* ── Left branding panel ── */}
-        <div className="hidden md:flex flex-col justify-between w-[220px] flex-shrink-0 bg-zinc-900 dark:bg-zinc-950 p-8 border-r border-zinc-800">
+        {/* Left panel */}
+        <div className="hidden md:flex flex-col justify-between w-[220px] bg-zinc-900 dark:bg-zinc-950 p-8 border-r border-zinc-800">
           <div>
-            {/* Logo */}
             <div className="flex items-center gap-2 mb-8">
               <div className="w-6 h-6 bg-emerald-500 rounded-md flex items-center justify-center">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <svg width="12" height="12" viewBox="0 0 12 12">
                   <polyline
                     points="2,6 5,9.5 10,2.5"
                     stroke="white"
@@ -83,22 +101,33 @@ function Auth() {
                   />
                 </svg>
               </div>
-              <span className="text-[15px] font-medium text-zinc-100 tracking-tight">
+              <span className="text-[15px] font-medium text-zinc-100">
                 TaskFlow
               </span>
             </div>
-            <p className="text-zinc-400 text-[13px] leading-relaxed">
+
+            <p className="text-zinc-400 text-[13px]">
               <span className="block text-zinc-300 font-medium mb-1">
                 Stay in flow.
               </span>
               Organize tasks, hit deadlines, and ship without the noise.
             </p>
           </div>
+
           <p className="text-zinc-600 text-xs">Built by Iman Datta</p>
         </div>
 
-        {/* ── Right form panel ── */}
-        <div className="flex-1 bg-white dark:bg-zinc-900 p-8">
+        {/* Right panel */}
+        <div className="flex-1 bg-white dark:bg-zinc-900 p-8 relative">
+          <button
+            onClick={() => {
+              navigate("/");
+            }}
+            className="absolute top-4 right-4 p-2 rounded-md text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-white transition hover:scale-110 active:scale-95"
+          >
+            <X size={20} />
+          </button>
+
           <div
             key={view}
             className="animate-in fade-in slide-in-from-bottom-2 duration-200"
@@ -110,12 +139,14 @@ function Auth() {
                 onForgot={() => setView("forgot")}
               />
             )}
+
             {view === "register" && (
               <RegisterEntry
                 onLogin={() => setView("login")}
                 onRegister={registerUser}
               />
             )}
+
             {view === "forgot" && (
               <ForgotPassword onBackToLogin={() => setView("login")} />
             )}
