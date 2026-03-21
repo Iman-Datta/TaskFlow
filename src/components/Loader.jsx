@@ -1,89 +1,93 @@
 import { useEffect, useState, useRef } from "react";
 
+const API = import.meta.env.VITE_API_URL;
+
+const TICK_MS = 500;
+const MIN_SECS = 120; // 2 minutes minimum
+const TICK_TOTAL = (MIN_SECS * 1000) / TICK_MS;
+
 const STEPS = [
   {
-    at: 0,
-    pct: 0,
-    label: "Starting up",
-    msg: "Just a moment while we set things up.",
+    startPct: 0,
+    endPct: 18,
+    label: "Waking up",
+    msg: "Initialising core services...",
+    phase: "Phase 1 of 5",
   },
   {
-    at: 12,
-    pct: 22,
-    label: "Loading files",
-    msg: "Fetching everything you need.",
+    startPct: 18,
+    endPct: 36,
+    label: "Loading",
+    msg: "Fetching remote resources...",
+    phase: "Phase 2 of 5",
   },
   {
-    at: 28,
-    pct: 42,
-    label: "Checking settings",
-    msg: "Making sure it's just right for you.",
+    startPct: 36,
+    endPct: 55,
+    label: "Preparing",
+    msg: "Configuring environment...",
+    phase: "Phase 3 of 5",
   },
-  { at: 48, pct: 65, label: "Almost there", msg: "We're in the home stretch!" },
   {
-    at: 68,
-    pct: 80,
+    startPct: 55,
+    endPct: 74,
+    label: "Almost there",
+    msg: "Compiling final modules...",
+    phase: "Phase 4 of 5",
+  },
+  {
+    startPct: 74,
+    endPct: 92,
     label: "Finalising",
-    msg: "Tying up the last few things…",
+    msg: "Running integrity checks...",
+    phase: "Phase 5 of 5",
+  },
+  {
+    startPct: 92,
+    endPct: 100,
+    label: "Ready",
+    msg: "Launching application...",
+    phase: "Complete",
   },
 ];
 
-const TITLES = [
-  "Getting things ready…",
-  "Loading your files…",
-  "Checking your settings…",
-  "Almost ready!",
-  "Just finishing up…",
-];
+const NUM_TICKS = 40;
 
-function fakeBackendCall(delay = 5200) {
-  return new Promise((resolve) => setTimeout(resolve, delay));
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 export default function LoadingScreen({ onComplete }) {
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgressState] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
-  const [msgVisible, setMsgVisible] = useState(true);
   const [done, setDone] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
-  const [isFinishing, setIsFinishing] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [labelVisible, setLabelVisible] = useState(true);
+  const [msgVisible, setMsgVisible] = useState(true);
 
-  // All mutable state in refs so interval closure never goes stale
   const tickRef = useRef(0);
   const progressRef = useRef(0);
-  const stepIdxRef = useRef(0);
   const backendDone = useRef(false);
   const finishingRef = useRef(false);
   const intervalRef = useRef(null);
+  const prevStepIdx = useRef(0);
 
-  function smoothSetProgress(target) {
-    progressRef.current = target;
-    setProgress(Math.round(target));
-  }
-
-  function changeStep(idx) {
-    stepIdxRef.current = idx;
-    setStepIdx(idx);
-    setMsgVisible(false);
-    setTimeout(() => setMsgVisible(true), 200);
+  function setProgress(p) {
+    const clamped = Math.min(100, p);
+    progressRef.current = clamped;
+    setProgressState(Math.round(clamped));
   }
 
   function finishUp() {
     if (finishingRef.current) return;
     finishingRef.current = true;
-    setIsFinishing(true);
+    setFinishing(true);
     clearInterval(intervalRef.current);
 
-    // Show final step
-    stepIdxRef.current = 4;
-    setStepIdx(4);
-    setMsgVisible(false);
-    setTimeout(() => setMsgVisible(true), 200);
-
-    // Rush from current position → 100%
     const rush = setInterval(() => {
-      const next = Math.min(100, progressRef.current + 3);
-      smoothSetProgress(next);
+      const next = Math.min(100, progressRef.current + 1.5);
+      setProgress(next);
       if (next >= 100) {
         clearInterval(rush);
         setTimeout(() => {
@@ -91,57 +95,85 @@ export default function LoadingScreen({ onComplete }) {
           setTimeout(() => {
             setDone(true);
             onComplete?.();
-          }, 600);
-        }, 400);
+          }, 800);
+        }, 600);
       }
-    }, 25);
+    }, 30);
   }
 
+  // ONLY CHANGE INSIDE useEffect
+
   useEffect(() => {
-    // Replace fakeBackendCall with your real API call
-    fakeBackendCall(5200).then(() => {
+    fetch(API)
+      .then(() => {
+        backendDone.current = true;
+      })
+      .catch(() => {
+        backendDone.current = true;
+      });
+
+    // fallback safety
+    setTimeout(() => {
       backendDone.current = true;
-    });
+    }, 180000); // keep your 3 min fallback
 
     intervalRef.current = setInterval(() => {
-      tickRef.current += 1;
-      const t = tickRef.current;
+      tickRef.current++;
+      const tick = tickRef.current;
 
-      // Determine current step from tick
-      const nextStepIdx = STEPS.reduce((acc, s, i) => (t >= s.at ? i : acc), 0);
-      if (nextStepIdx !== stepIdxRef.current) {
-        changeStep(nextStepIdx);
+      const t = Math.min(tick / TICK_TOTAL, 1);
+      const target = easeInOutCubic(t) * 92;
+
+      // 🔥 slightly faster initial movement
+      const delta = (target - progressRef.current) * 0.08;
+
+      if (!finishingRef.current && delta > 0) {
+        setProgress(progressRef.current + delta);
       }
 
-      // Soft cap: bar won't cross into the next step's range until backend fires
-      const currentStep = STEPS[nextStepIdx];
-      const nextStep = STEPS[nextStepIdx + 1];
-      const softCap = backendDone.current
-        ? 100
-        : nextStep
-          ? nextStep.pct - 3
-          : 78;
-      const natural = currentStep.pct + Math.min(t - currentStep.at, 10) * 1.2;
-      const newPct = Math.min(natural, softCap);
+      const newIdx = STEPS.findIndex((s, i) => {
+        const next = STEPS[i + 1];
+        return (
+          progressRef.current >= s.startPct &&
+          (!next || progressRef.current < next.startPct)
+        );
+      });
 
-      if (newPct > progressRef.current) {
-        smoothSetProgress(newPct);
+      const idx = Math.max(0, newIdx === -1 ? STEPS.length - 1 : newIdx);
+
+      if (idx !== prevStepIdx.current) {
+        prevStepIdx.current = idx;
+        setLabelVisible(false);
+        setMsgVisible(false);
+
+        setTimeout(() => {
+          setStepIdx(idx);
+          setLabelVisible(true);
+          setMsgVisible(true);
+        }, 300);
       }
 
-      // Backend done + we're past 60% → rush to 100%
+      // 🔥 MAIN FIX (IMPORTANT)
+      // instead of waiting full 2 minutes
       if (
         backendDone.current &&
-        progressRef.current >= 60 &&
+        progressRef.current >= 55 &&
         !finishingRef.current
       ) {
         finishUp();
       }
-    }, 350);
+    }, TICK_MS);
 
     return () => clearInterval(intervalRef.current);
-  }, []); // empty — interval reads from refs only, never stale
+  }, []);
 
   if (done) return null;
+
+  const step = STEPS[finishing ? STEPS.length - 1 : stepIdx];
+  const ticks = Array.from(
+    { length: NUM_TICKS },
+    (_, i) => (i / NUM_TICKS) * 100 <= progress,
+  );
 
   return (
     <div
@@ -149,172 +181,236 @@ export default function LoadingScreen({ onComplete }) {
         position: "fixed",
         inset: 0,
         zIndex: 9999,
+        background: "#0a0a0a",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f5f4f0",
-        fontFamily: "'DM Sans', sans-serif",
-        transition: "opacity 0.6s ease",
         opacity: fadeOut ? 0 : 1,
+        transition: "opacity 0.8s ease",
       }}
     >
-      <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap"
-        rel="stylesheet"
-      />
+      {/* Grain */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap');
+        @keyframes orb-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes ring-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.04);opacity:0.6} }
+        @keyframes fade-up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes blob-drift { 0%,100%{transform:translate(0,0)scale(1)} 50%{transform:translate(20px,30px)scale(1.05)} }
+      `}</style>
 
+      {/* Orb */}
       <div
         style={{
-          width: "100%",
-          maxWidth: 360,
-          padding: "0 24px",
-          textAlign: "center",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 0,
+          width: 440,
+          maxWidth: "90vw",
+          fontFamily: "'DM Mono', monospace",
+          color: "#f0ede6",
         }}
       >
         <div
           style={{
-            marginBottom: 28,
-            display: "flex",
-            justifyContent: "center",
+            position: "relative",
+            width: 100,
+            height: 100,
+            marginBottom: 48,
+            animation: "fade-up 1s ease 0.2s both",
           }}
         >
-          <SpinIcon progress={progress} />
-        </div>
-
-        <h2
-          key={stepIdx}
-          style={{
-            fontSize: 22,
-            fontWeight: 600,
-            color: "#111",
-            margin: "0 0 8px",
-            letterSpacing: "-0.4px",
-            animation: "fadeSlideUp 0.35s ease forwards",
-          }}
-        >
-          {TITLES[stepIdx]}
-        </h2>
-
-        <p
-          style={{
-            fontSize: 14,
-            color: "#888",
-            margin: "0 0 32px",
-            lineHeight: 1.6,
-            minHeight: 44,
-            transition: "opacity 0.25s ease",
-            opacity: msgVisible ? 1 : 0,
-          }}
-        >
-          {isFinishing
-            ? "Server responded — wrapping up!"
-            : STEPS[stepIdx]?.msg}
-        </p>
-
-        <div
-          style={{
-            background: "#e2e0d8",
-            borderRadius: 100,
-            height: 6,
-            overflow: "hidden",
-            marginBottom: 10,
-          }}
-        >
+          {[0, -14, -28].map((inset, i) => (
+            <div
+              key={i}
+              style={{
+                position: "absolute",
+                inset,
+                borderRadius: "50%",
+                border: `1px solid rgba(240,237,230,${0.08 - i * 0.025})`,
+                animation: `ring-pulse ${4 + i}s ease-in-out ${i * 0.5}s infinite`,
+              }}
+            />
+          ))}
           <div
             style={{
-              height: "100%",
-              width: `${progress}%`,
-              background: "#111",
-              borderRadius: 100,
-              transition: "width 0.4s cubic-bezier(0.25,0.46,0.45,0.94)",
+              position: "absolute",
+              inset: 10,
+              borderRadius: "50%",
+              background:
+                "conic-gradient(from 0deg, rgba(180,140,100,0.7), rgba(240,237,230,0.5), rgba(80,120,160,0.6), rgba(140,100,180,0.5), rgba(180,140,100,0.7))",
+              filter: "blur(2px)",
+              animation: "orb-spin 8s linear infinite",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 14,
+              borderRadius: "50%",
+              background: "#0a0a0a",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              inset: 28,
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle at 40% 35%, rgba(240,237,230,0.3) 0%, transparent 60%)",
             }}
           />
         </div>
 
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 12,
+            letterSpacing: "0.45em",
+            textTransform: "uppercase",
+            color: "rgba(240,237,230,0.3)",
+            marginBottom: 40,
+            animation: "fade-up 1s ease 0.6s both",
           }}
         >
-          <span style={{ fontSize: 12, color: "#aaa" }}>
-            {STEPS[stepIdx]?.label}
-          </span>
-          <span style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
-            {progress}%
-          </span>
+          System
+        </div>
+
+        <div
+          style={{
+            fontFamily: "'Playfair Display', serif",
+            fontSize: 28,
+            fontStyle: "italic",
+            color: "#f0ede6",
+            marginBottom: 6,
+            textAlign: "center",
+            opacity: labelVisible ? 1 : 0,
+            transition: "opacity 0.3s ease",
+            minHeight: 36,
+            animation: "fade-up 1s ease 1s both",
+          }}
+        >
+          {step.label}
+        </div>
+        <div
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "rgba(240,237,230,0.3)",
+            marginBottom: 36,
+            textAlign: "center",
+            opacity: msgVisible ? 1 : 0,
+            transition: "opacity 0.3s ease",
+            animation: "fade-up 1s ease 1.2s both",
+          }}
+        >
+          {step.msg}
+        </div>
+
+        <div style={{ width: "100%", animation: "fade-up 1s ease 1.4s both" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9,
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+                color: "rgba(240,237,230,0.25)",
+              }}
+            >
+              {step.phase}
+            </span>
+            <span
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: 22,
+                color: "rgba(240,237,230,0.8)",
+              }}
+            >
+              {progress}%
+            </span>
+          </div>
+          <div
+            style={{
+              width: "100%",
+              height: 1,
+              background: "rgba(240,237,230,0.08)",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                height: 1,
+                width: `${progress}%`,
+                background:
+                  "linear-gradient(90deg, rgba(180,140,100,0.6) 0%, rgba(240,237,230,0.9) 100%)",
+                boxShadow: "0 0 12px rgba(240,237,230,0.4)",
+                transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  right: -3,
+                  top: -3,
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#f0ede6",
+                  boxShadow: "0 0 10px rgba(240,237,230,0.8)",
+                }}
+              />
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: 8,
+            }}
+          >
+            {ticks.map((passed, i) => (
+              <div
+                key={i}
+                style={{
+                  width: 1,
+                  height: 4,
+                  background: passed
+                    ? "rgba(240,237,230,0.3)"
+                    : "rgba(240,237,230,0.1)",
+                  transition: "background 0.5s ease",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 32,
+            fontSize: 9,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "rgba(240,237,230,0.15)",
+            animation: "fade-up 2s ease 2.5s both",
+          }}
+        >
+          {finishing
+            ? "Server ready · Launching now"
+            : "Estimated 2 minutes · Please wait"}
         </div>
       </div>
-
-      <style>{`
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes spin {
-          to { stroke-dashoffset: -200; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function SpinIcon({ progress }) {
-  const r = 22;
-  const circ = 2 * Math.PI * r;
-  const filled = (progress / 100) * circ;
-
-  return (
-    <div
-      style={{
-        width: 60,
-        height: 60,
-        borderRadius: "50%",
-        background: "#fff",
-        border: "1px solid #e5e3de",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-      }}
-    >
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <circle
-          cx="24"
-          cy="24"
-          r={r}
-          stroke="#e2e0d8"
-          strokeWidth="3"
-          fill="none"
-        />
-        <circle
-          cx="24"
-          cy="24"
-          r={r}
-          stroke="#111"
-          strokeWidth="3"
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${filled} ${circ - filled}`}
-          strokeDashoffset={circ / 4}
-          style={{
-            transition:
-              "stroke-dasharray 0.4s cubic-bezier(0.25,0.46,0.45,0.94)",
-          }}
-        />
-        <circle
-          cx="24"
-          cy="24"
-          r={r}
-          stroke="#bbb"
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray="8 62"
-          style={{ animation: "spin 1.4s linear infinite" }}
-        />
-      </svg>
     </div>
   );
 }
