@@ -18,8 +18,10 @@ import Completed from "./pages/Completed";
 import Trash from "./pages/Trash";
 import AuthCallback from "./pages/AuthCallback";
 import About from "./pages/About";
+import Profile from "./pages/Profile";
+
 import { refreshAccessToken } from "./utils/refreshAccessToken";
-import LoadingScreen  from "./components/LoadingScreen ";
+import LoadingScreen from "./components/LoadingScreen ";
 import { useState } from "react";
 
 const API = import.meta.env.VITE_API_URL;
@@ -28,7 +30,9 @@ function App() {
   const dispatch = useDispatch();
   const isAuthLoading = useSelector((state) => state.auth.isAuthLoading);
   const theme = useSelector((state) => state.theme.theme);
-  const [showLoader, setShowLoader] = useState(true);
+  const [showLoader, setShowLoader] = useState(() => {
+    return !sessionStorage.getItem("loaderShown");
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -62,9 +66,12 @@ function App() {
 
   if (showLoader) {
     return (
-      <LoadingScreen 
+      <LoadingScreen
         backendReady={!isAuthLoading}
-        onComplete={() => setShowLoader(false)}
+        onComplete={() => {
+          sessionStorage.setItem("loaderShown", "true");
+          setShowLoader(false);
+        }}
       />
     );
   }
@@ -117,6 +124,7 @@ function App() {
         <Route path="/trash" element={<Trash />} />
         <Route path="/oauth-success" element={<AuthCallback />} />
         <Route path="/about" element={<About />} />
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </div>
   );

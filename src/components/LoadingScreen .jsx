@@ -96,15 +96,17 @@ export default function LoadingScreen({ backendReady, onComplete }) {
 
       if (next >= 100) {
         clearInterval(rush);
+        setFadeOut(true);
+
         setTimeout(() => {
-          setFadeOut(true);
+          onComplete?.(); // show next screen first
+
           setTimeout(() => {
-            setDone(true);
-            onComplete?.();
-          }, 500);
-        }, 600);
+            setDone(true); // then remove loader
+          }, 100);
+        }, 100);
       }
-    }, 18);
+    }, 50);
   }
 
   // Watch backendReady prop — when App.jsx signals done, set the flag
@@ -146,13 +148,15 @@ export default function LoadingScreen({ backendReady, onComplete }) {
     };
   }, []);
 
-  if (done) return null;
+  if (done) {
+    return <div className="fixed inset-0 bg-white z-[9999]" />;
+  }
 
   const step = STEPS[stepIdx];
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] bg-white flex items-center justify-center transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[9999] bg-zinc-100 dark:bg-zinc-950 flex items-center justify-center transition-opacity duration-500 ${
         fadeOut ? "opacity-0" : "opacity-100"
       }`}
     >
