@@ -1,531 +1,90 @@
-// import { useEffect, useState, useRef } from "react";
-
-// const API = import.meta.env.VITE_API_URL;
-
-// const TICK_MS = 500;
-// const MIN_SECS = 120; // 2 minutes minimum
-// const TICK_TOTAL = (MIN_SECS * 1000) / TICK_MS;
-
-// const STEPS = [
-//   {
-//     startPct: 0,
-//     endPct: 18,
-//     label: "Waking up",
-//     msg: "Initialising core services...",
-//     phase: "Phase 1 of 5",
-//   },
-//   {
-//     startPct: 18,
-//     endPct: 36,
-//     label: "Loading",
-//     msg: "Fetching remote resources...",
-//     phase: "Phase 2 of 5",
-//   },
-//   {
-//     startPct: 36,
-//     endPct: 55,
-//     label: "Preparing",
-//     msg: "Configuring environment...",
-//     phase: "Phase 3 of 5",
-//   },
-//   {
-//     startPct: 55,
-//     endPct: 74,
-//     label: "Almost there",
-//     msg: "Compiling final modules...",
-//     phase: "Phase 4 of 5",
-//   },
-//   {
-//     startPct: 74,
-//     endPct: 92,
-//     label: "Finalising",
-//     msg: "Running integrity checks...",
-//     phase: "Phase 5 of 5",
-//   },
-//   {
-//     startPct: 92,
-//     endPct: 100,
-//     label: "Ready",
-//     msg: "Launching application...",
-//     phase: "Complete",
-//   },
-// ];
-
-// const NUM_TICKS = 40;
-
-// function easeInOutCubic(t) {
-//   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-// }
-
-// export default function LoadingScreen({ onComplete }) {
-//   const [progress, setProgressState] = useState(0);
-//   const [stepIdx, setStepIdx] = useState(0);
-//   const [done, setDone] = useState(false);
-//   const [fadeOut, setFadeOut] = useState(false);
-//   const [finishing, setFinishing] = useState(false);
-//   const [labelVisible, setLabelVisible] = useState(true);
-//   const [msgVisible, setMsgVisible] = useState(true);
-
-//   const tickRef = useRef(0);
-//   const progressRef = useRef(0);
-//   const backendDone = useRef(false);
-//   const finishingRef = useRef(false);
-//   const intervalRef = useRef(null);
-//   const prevStepIdx = useRef(0);
-
-//   function setProgress(p) {
-//     const clamped = Math.min(100, p);
-//     progressRef.current = clamped;
-//     setProgressState(Math.round(clamped));
-//   }
-
-//   function finishUp() {
-//     if (finishingRef.current) return;
-//     finishingRef.current = true;
-//     setFinishing(true);
-//     clearInterval(intervalRef.current);
-
-//     const rush = setInterval(() => {
-//       const next = Math.min(100, progressRef.current + 1.5);
-//       setProgress(next);
-//       if (next >= 100) {
-//         clearInterval(rush);
-//         setTimeout(() => {
-//           setFadeOut(true);
-//           setTimeout(() => {
-//             setDone(true);
-//             onComplete?.();
-//           }, 800);
-//         }, 600);
-//       }
-//     }, 30);
-//   }
-
-//   // ONLY CHANGE INSIDE useEffect
-
-//   useEffect(() => {
-//     // call proper health endpoint
-//     fetch(`${API}/health`)
-//       .then(() => {
-//         backendDone.current = true;
-//       })
-//       .catch(() => {
-//         backendDone.current = true;
-//       });
-
-//     // fallback safety (keep your logic)
-//     const fallback = setTimeout(() => {
-//       backendDone.current = true;
-//     }, 180000);
-
-//     intervalRef.current = setInterval(() => {
-//       tickRef.current++;
-//       const tick = tickRef.current;
-
-//       const t = Math.min(tick / TICK_TOTAL, 1);
-//       const target = easeInOutCubic(t) * 92;
-
-//       // smoother + slightly faster start
-//       const delta = (target - progressRef.current) * 0.08;
-
-//       if (!finishingRef.current && delta > 0) {
-//         setProgress(progressRef.current + delta);
-//       }
-
-//       const newIdx = STEPS.findIndex((s, i) => {
-//         const next = STEPS[i + 1];
-//         return (
-//           progressRef.current >= s.startPct &&
-//           (!next || progressRef.current < next.startPct)
-//         );
-//       });
-
-//       const idx = Math.max(0, newIdx === -1 ? STEPS.length - 1 : newIdx);
-
-//       if (idx !== prevStepIdx.current) {
-//         prevStepIdx.current = idx;
-
-//         setLabelVisible(false);
-//         setMsgVisible(false);
-
-//         setTimeout(() => {
-//           setStepIdx(idx);
-//           setLabelVisible(true);
-//           setMsgVisible(true);
-//         }, 300);
-//       }
-
-//       // MAIN FIX (no forced 2 min wait anymore)
-//       if (
-//         backendDone.current &&
-//         progressRef.current >= 55 &&
-//         !finishingRef.current
-//       ) {
-//         finishUp();
-//       }
-//     }, TICK_MS);
-
-//     return () => {
-//       clearInterval(intervalRef.current);
-//       clearTimeout(fallback);
-//     };
-//   }, []);
-
-//   if (done) return null;
-
-//   const step = STEPS[finishing ? STEPS.length - 1 : stepIdx];
-//   const ticks = Array.from(
-//     { length: NUM_TICKS },
-//     (_, i) => (i / NUM_TICKS) * 100 <= progress,
-//   );
-
-//   return (
-//     <div
-//       style={{
-//         position: "fixed",
-//         inset: 0,
-//         zIndex: 9999,
-//         background: "#0a0a0a",
-//         display: "flex",
-//         alignItems: "center",
-//         justifyContent: "center",
-//         opacity: fadeOut ? 0 : 1,
-//         transition: "opacity 0.8s ease",
-//       }}
-//     >
-//       {/* Grain */}
-//       <style>{`
-//         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap');
-//         @keyframes orb-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-//         @keyframes ring-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.04);opacity:0.6} }
-//         @keyframes fade-up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-//         @keyframes blob-drift { 0%,100%{transform:translate(0,0)scale(1)} 50%{transform:translate(20px,30px)scale(1.05)} }
-//       `}</style>
-
-//       {/* Orb */}
-//       <div
-//         style={{
-//           position: "relative",
-//           display: "flex",
-//           flexDirection: "column",
-//           alignItems: "center",
-//           gap: 0,
-//           width: 440,
-//           maxWidth: "90vw",
-//           fontFamily: "'DM Mono', monospace",
-//           color: "#f0ede6",
-//         }}
-//       >
-//         <div
-//           style={{
-//             position: "relative",
-//             width: 100,
-//             height: 100,
-//             marginBottom: 48,
-//             animation: "fade-up 1s ease 0.2s both",
-//           }}
-//         >
-//           {[0, -14, -28].map((inset, i) => (
-//             <div
-//               key={i}
-//               style={{
-//                 position: "absolute",
-//                 inset,
-//                 borderRadius: "50%",
-//                 border: `1px solid rgba(240,237,230,${0.08 - i * 0.025})`,
-//                 animation: `ring-pulse ${4 + i}s ease-in-out ${i * 0.5}s infinite`,
-//               }}
-//             />
-//           ))}
-//           <div
-//             style={{
-//               position: "absolute",
-//               inset: 10,
-//               borderRadius: "50%",
-//               background:
-//                 "conic-gradient(from 0deg, rgba(180,140,100,0.7), rgba(240,237,230,0.5), rgba(80,120,160,0.6), rgba(140,100,180,0.5), rgba(180,140,100,0.7))",
-//               filter: "blur(2px)",
-//               animation: "orb-spin 8s linear infinite",
-//             }}
-//           />
-//           <div
-//             style={{
-//               position: "absolute",
-//               inset: 14,
-//               borderRadius: "50%",
-//               background: "#0a0a0a",
-//             }}
-//           />
-//           <div
-//             style={{
-//               position: "absolute",
-//               inset: 28,
-//               borderRadius: "50%",
-//               background:
-//                 "radial-gradient(circle at 40% 35%, rgba(240,237,230,0.3) 0%, transparent 60%)",
-//             }}
-//           />
-//         </div>
-
-//         <div
-//           style={{
-//             fontFamily: "'Playfair Display', serif",
-//             fontSize: 12,
-//             letterSpacing: "0.45em",
-//             textTransform: "uppercase",
-//             color: "rgba(240,237,230,0.3)",
-//             marginBottom: 40,
-//             animation: "fade-up 1s ease 0.6s both",
-//           }}
-//         >
-//           System
-//         </div>
-
-//         <div
-//           style={{
-//             fontFamily: "'Playfair Display', serif",
-//             fontSize: 28,
-//             fontStyle: "italic",
-//             color: "#f0ede6",
-//             marginBottom: 6,
-//             textAlign: "center",
-//             opacity: labelVisible ? 1 : 0,
-//             transition: "opacity 0.3s ease",
-//             minHeight: 36,
-//             animation: "fade-up 1s ease 1s both",
-//           }}
-//         >
-//           {step.label}
-//         </div>
-//         <div
-//           style={{
-//             fontSize: 10,
-//             letterSpacing: "0.18em",
-//             textTransform: "uppercase",
-//             color: "rgba(240,237,230,0.3)",
-//             marginBottom: 36,
-//             textAlign: "center",
-//             opacity: msgVisible ? 1 : 0,
-//             transition: "opacity 0.3s ease",
-//             animation: "fade-up 1s ease 1.2s both",
-//           }}
-//         >
-//           {step.msg}
-//         </div>
-
-//         <div style={{ width: "100%", animation: "fade-up 1s ease 1.4s both" }}>
-//           <div
-//             style={{
-//               display: "flex",
-//               justifyContent: "space-between",
-//               alignItems: "center",
-//               marginBottom: 10,
-//             }}
-//           >
-//             <span
-//               style={{
-//                 fontSize: 9,
-//                 letterSpacing: "0.22em",
-//                 textTransform: "uppercase",
-//                 color: "rgba(240,237,230,0.25)",
-//               }}
-//             >
-//               {step.phase}
-//             </span>
-//             <span
-//               style={{
-//                 fontFamily: "'Playfair Display', serif",
-//                 fontSize: 22,
-//                 color: "rgba(240,237,230,0.8)",
-//               }}
-//             >
-//               {progress}%
-//             </span>
-//           </div>
-//           <div
-//             style={{
-//               width: "100%",
-//               height: 1,
-//               background: "rgba(240,237,230,0.08)",
-//               position: "relative",
-//             }}
-//           >
-//             <div
-//               style={{
-//                 position: "absolute",
-//                 top: 0,
-//                 left: 0,
-//                 height: 1,
-//                 width: `${progress}%`,
-//                 background:
-//                   "linear-gradient(90deg, rgba(180,140,100,0.6) 0%, rgba(240,237,230,0.9) 100%)",
-//                 boxShadow: "0 0 12px rgba(240,237,230,0.4)",
-//                 transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
-//               }}
-//             >
-//               <div
-//                 style={{
-//                   position: "absolute",
-//                   right: -3,
-//                   top: -3,
-//                   width: 7,
-//                   height: 7,
-//                   borderRadius: "50%",
-//                   background: "#f0ede6",
-//                   boxShadow: "0 0 10px rgba(240,237,230,0.8)",
-//                 }}
-//               />
-//             </div>
-//           </div>
-//           <div
-//             style={{
-//               display: "flex",
-//               justifyContent: "space-between",
-//               marginTop: 8,
-//             }}
-//           >
-//             {ticks.map((passed, i) => (
-//               <div
-//                 key={i}
-//                 style={{
-//                   width: 1,
-//                   height: 4,
-//                   background: passed
-//                     ? "rgba(240,237,230,0.3)"
-//                     : "rgba(240,237,230,0.1)",
-//                   transition: "background 0.5s ease",
-//                 }}
-//               />
-//             ))}
-//           </div>
-//         </div>
-
-//         <div
-//           style={{
-//             marginTop: 32,
-//             fontSize: 9,
-//             letterSpacing: "0.2em",
-//             textTransform: "uppercase",
-//             color: "rgba(240,237,230,0.15)",
-//             animation: "fade-up 2s ease 2.5s both",
-//           }}
-//         >
-//           {finishing
-//             ? "Server ready · Launching now"
-//             : "Estimated 2 minutes · Please wait"}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 import { useEffect, useState, useRef } from "react";
 
 const API = import.meta.env.VITE_API_URL;
 
-const TICK_MS = 500;
-const MIN_SECS = 120;
-const TICK_TOTAL = (MIN_SECS * 1000) / TICK_MS;
-
 const STEPS = [
-  {
-    startPct: 0,
-    endPct: 18,
-    label: "Waking up",
-    msg: "Initialising core services...",
-    phase: "Phase 1 of 5",
-  },
-  {
-    startPct: 18,
-    endPct: 36,
-    label: "Loading",
-    msg: "Fetching remote resources...",
-    phase: "Phase 2 of 5",
-  },
-  {
-    startPct: 36,
-    endPct: 55,
-    label: "Preparing",
-    msg: "Configuring environment...",
-    phase: "Phase 3 of 5",
-  },
-  {
-    startPct: 55,
-    endPct: 74,
-    label: "Almost there",
-    msg: "Compiling final modules...",
-    phase: "Phase 4 of 5",
-  },
-  {
-    startPct: 74,
-    endPct: 92,
-    label: "Finalising",
-    msg: "Running integrity checks...",
-    phase: "Phase 5 of 5",
-  },
-  {
-    startPct: 92,
-    endPct: 100,
-    label: "Ready",
-    msg: "Launching application...",
-    phase: "Complete",
-  },
+  { at: 0, label: "Getting things ready", msg: "This will only take a moment" },
+  { at: 30, label: "Almost there", msg: "Warming things up for you..." },
+  { at: 60, label: "Just a second", msg: "Nearly done, hang tight!" },
+  { at: 85, label: "Ready soon", msg: "Opening your dashboard..." },
 ];
 
-const NUM_TICKS = 40;
+const TICK_MS = 400;
+const TICK_TOTAL = (120 * 1000) / TICK_MS;
 
-function easeInOutCubic(t) {
+function ease(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+function getIdx(p) {
+  let i = 0;
+  STEPS.forEach((s, j) => {
+    if (p >= s.at) i = j;
+  });
+  return i;
+}
+
 export default function LoadingScreen({ onComplete }) {
-  const [progress, setProgressState] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [stepIdx, setStepIdx] = useState(0);
-  const [done, setDone] = useState(false);
-  const [fadeOut, setFadeOut] = useState(false);
-  const [finishing, setFinishing] = useState(false);
   const [labelVisible, setLabelVisible] = useState(true);
-  const [msgVisible, setMsgVisible] = useState(true);
+  const [fadeOut, setFadeOut] = useState(false);
+  const [done, setDone] = useState(false);
 
-  const tickRef = useRef(0);
   const progressRef = useRef(0);
+  const tickRef = useRef(0);
   const backendDone = useRef(false);
-  const finishingRef = useRef(false);
+  const finishing = useRef(false);
   const intervalRef = useRef(null);
-  const prevStepIdx = useRef(0);
+  const prevIdx = useRef(0);
 
-  function setProgress(p) {
-    const clamped = Math.min(100, p);
+  function setP(val) {
+    const clamped = Math.min(100, val);
     progressRef.current = clamped;
-    setProgressState(Math.round(clamped));
+    setProgress(Math.round(clamped));
+  }
+
+  function changeStep(idx) {
+    setLabelVisible(false);
+    setTimeout(() => {
+      setStepIdx(idx);
+      setLabelVisible(true);
+    }, 220);
   }
 
   function finishUp() {
-    if (finishingRef.current) return;
-    finishingRef.current = true;
-    setFinishing(true);
+    if (finishing.current) return;
+    finishing.current = true;
     clearInterval(intervalRef.current);
 
+    // Rush progress to 100 then navigate
     const rush = setInterval(() => {
-      const next = Math.min(100, progressRef.current + 3); // 🔥 faster game-style jump
-      setProgress(next);
+      const next = Math.min(100, progressRef.current + 1.5);
+      setP(next);
+
+      const idx = getIdx(next);
+      if (idx !== prevIdx.current) {
+        prevIdx.current = idx;
+        changeStep(idx);
+      }
 
       if (next >= 100) {
         clearInterval(rush);
-
+        changeStep(STEPS.length - 1);
+        // Wait for user to see 100% then fade out
         setTimeout(() => {
           setFadeOut(true);
           setTimeout(() => {
             setDone(true);
             onComplete?.();
-          }, 800);
-        }, 600);
+          }, 500);
+        }, 400);
       }
-    }, 20);
+    }, 18);
   }
 
   useEffect(() => {
-    // 🔥 backend wake-up call
+    // Call backend health endpoint to wake up the server
     fetch(`${API}/health`)
       .then(() => {
         backendDone.current = true;
@@ -534,51 +93,28 @@ export default function LoadingScreen({ onComplete }) {
         backendDone.current = true;
       });
 
-    // fallback safety
+    // Fallback in case server never responds
     const fallback = setTimeout(() => {
       backendDone.current = true;
-    }, 180000);
+    }, 180_000);
 
     intervalRef.current = setInterval(() => {
       tickRef.current++;
-      const tick = tickRef.current;
+      const t = Math.min(tickRef.current / TICK_TOTAL, 1);
+      const target = ease(t) * 92;
+      const delta = (target - progressRef.current) * 0.09;
 
-      const t = Math.min(tick / TICK_TOTAL, 1);
-      const target = easeInOutCubic(t) * 92;
+      // Slowly move progress up to 92% while waiting for backend
+      if (!finishing.current && delta > 0) setP(progressRef.current + delta);
 
-      const delta = (target - progressRef.current) * 0.08;
-
-      if (!finishingRef.current && delta > 0) {
-        setProgress(progressRef.current + delta);
+      const idx = getIdx(progressRef.current);
+      if (idx !== prevIdx.current) {
+        prevIdx.current = idx;
+        changeStep(idx);
       }
 
-      const newIdx = STEPS.findIndex((s, i) => {
-        const next = STEPS[i + 1];
-        return (
-          progressRef.current >= s.startPct &&
-          (!next || progressRef.current < next.startPct)
-        );
-      });
-
-      const idx = Math.max(0, newIdx === -1 ? STEPS.length - 1 : newIdx);
-
-      if (idx !== prevStepIdx.current) {
-        prevStepIdx.current = idx;
-
-        setLabelVisible(false);
-        setMsgVisible(false);
-
-        setTimeout(() => {
-          setStepIdx(idx);
-          setLabelVisible(true);
-          setMsgVisible(true);
-        }, 300);
-      }
-
-      // 🎮 GAME-STYLE TRIGGER (main fix)
-      if (backendDone.current && !finishingRef.current) {
-        finishUp();
-      }
+      // Once backend responds, speed run to 100%
+      if (backendDone.current && !finishing.current) finishUp();
     }, TICK_MS);
 
     return () => {
@@ -589,247 +125,96 @@ export default function LoadingScreen({ onComplete }) {
 
   if (done) return null;
 
-  const step = STEPS[finishing ? STEPS.length - 1 : stepIdx];
-  const ticks = Array.from(
-    { length: NUM_TICKS },
-    (_, i) => (i / NUM_TICKS) * 100 <= progress,
-  );
+  const step = STEPS[stepIdx];
 
   return (
     <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 9999,
-        background: "#0a0a0a",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: fadeOut ? 0 : 1,
-        transition: "opacity 0.8s ease",
-      }}
+      className={`fixed inset-0 z-[9999] bg-white flex items-center justify-center transition-opacity duration-500 ${
+        fadeOut ? "opacity-0" : "opacity-100"
+      }`}
     >
-      {/* Grain */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&display=swap');
-        @keyframes orb-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes ring-pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.04);opacity:0.6} }
-        @keyframes fade-up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes blob-drift { 0%,100%{transform:translate(0,0)scale(1)} 50%{transform:translate(20px,30px)scale(1.05)} }
+        @keyframes spin  { to { transform: rotate(360deg);  } }
+        @keyframes spin2 { to { transform: rotate(-360deg); } }
+        @keyframes spin3 { to { transform: rotate(360deg);  } }
+        @keyframes shimmer {
+          from { transform: translateX(-200%); }
+          to   { transform: translateX(300%);  }
+        }
+        .spin1 { animation: spin  1s cubic-bezier(.6,0,.4,1) infinite; }
+        .spin2 { animation: spin2 .75s cubic-bezier(.6,0,.4,1) infinite; }
+        .spin3 { animation: spin3 .5s cubic-bezier(.6,0,.4,1) infinite; }
+        .shimmer { animation: shimmer 1.4s ease-in-out infinite; }
       `}</style>
 
-      {/* Orb */}
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 0,
-          width: 440,
-          maxWidth: "90vw",
-          fontFamily: "'DM Mono', monospace",
-          color: "#f0ede6",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-            width: 100,
-            height: 100,
-            marginBottom: 48,
-            animation: "fade-up 1s ease 0.2s both",
-          }}
-        >
-          {[0, -14, -28].map((inset, i) => (
-            <div
-              key={i}
-              style={{
-                position: "absolute",
-                inset,
-                borderRadius: "50%",
-                border: `1px solid rgba(240,237,230,${0.08 - i * 0.025})`,
-                animation: `ring-pulse ${4 + i}s ease-in-out ${i * 0.5}s infinite`,
-              }}
-            />
-          ))}
+      <div className="flex flex-col items-center">
+        {/* Spinner */}
+        <div className="relative w-20 h-20 mb-9">
+          {/* Outer ring */}
           <div
+            className="spin1 absolute inset-0 rounded-full"
             style={{
-              position: "absolute",
-              inset: 10,
-              borderRadius: "50%",
-              background:
-                "conic-gradient(from 0deg, rgba(180,140,100,0.7), rgba(240,237,230,0.5), rgba(80,120,160,0.6), rgba(140,100,180,0.5), rgba(180,140,100,0.7))",
-              filter: "blur(2px)",
-              animation: "orb-spin 8s linear infinite",
+              border: "3px solid #f0fdf4",
+              borderTopColor: "#10b981",
+              borderRightColor: "#6ee7b7",
             }}
           />
+          {/* Middle ring */}
           <div
+            className="spin2 absolute rounded-full"
             style={{
-              position: "absolute",
-              inset: 14,
-              borderRadius: "50%",
-              background: "#0a0a0a",
+              inset: 12,
+              border: "2.5px solid #f4f4f5",
+              borderBottomColor: "#10b981",
+              borderLeftColor: "#a7f3d0",
             }}
           />
+          {/* Inner ring */}
           <div
+            className="spin3 absolute rounded-full"
             style={{
-              position: "absolute",
-              inset: 28,
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle at 40% 35%, rgba(240,237,230,0.3) 0%, transparent 60%)",
+              inset: 25,
+              border: "2px solid #f0fdf4",
+              borderTopColor: "#34d399",
             }}
+          />
+          {/* Center dot */}
+          <div
+            className="absolute rounded-full bg-emerald-500 opacity-20"
+            style={{ inset: 34 }}
           />
         </div>
 
-        <div
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: 12,
-            letterSpacing: "0.45em",
-            textTransform: "uppercase",
-            color: "rgba(240,237,230,0.3)",
-            marginBottom: 40,
-            animation: "fade-up 1s ease 0.6s both",
-          }}
-        >
-          System
-        </div>
-
-        <div
-          style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: 28,
-            fontStyle: "italic",
-            color: "#f0ede6",
-            marginBottom: 6,
-            textAlign: "center",
-            opacity: labelVisible ? 1 : 0,
-            transition: "opacity 0.3s ease",
-            minHeight: 36,
-            animation: "fade-up 1s ease 1s both",
-          }}
+        {/* Label */}
+        <p
+          className={`text-xl font-semibold text-zinc-900 mb-2 text-center transition-opacity duration-200 ${
+            labelVisible ? "opacity-100" : "opacity-0"
+          }`}
         >
           {step.label}
-        </div>
-        <div
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            color: "rgba(240,237,230,0.3)",
-            marginBottom: 36,
-            textAlign: "center",
-            opacity: msgVisible ? 1 : 0,
-            transition: "opacity 0.3s ease",
-            animation: "fade-up 1s ease 1.2s both",
-          }}
+        </p>
+
+        {/* Sub message */}
+        <p
+          className={`text-sm text-zinc-400 mb-10 text-center transition-opacity duration-200 ${
+            labelVisible ? "opacity-100" : "opacity-0"
+          }`}
         >
           {step.msg}
-        </div>
+        </p>
 
-        <div style={{ width: "100%", animation: "fade-up 1s ease 1.4s both" }}>
+        {/* Progress bar */}
+        <div className="w-60 h-1 bg-zinc-100 rounded-full overflow-hidden mb-3">
           <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
+            className="h-full bg-emerald-500 rounded-full relative overflow-hidden transition-[width] duration-[450ms] ease-[cubic-bezier(.4,0,.2,1)]"
+            style={{ width: `${progress}%` }}
           >
-            <span
-              style={{
-                fontSize: 9,
-                letterSpacing: "0.22em",
-                textTransform: "uppercase",
-                color: "rgba(240,237,230,0.25)",
-              }}
-            >
-              {step.phase}
-            </span>
-            <span
-              style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 22,
-                color: "rgba(240,237,230,0.8)",
-              }}
-            >
-              {progress}%
-            </span>
-          </div>
-          <div
-            style={{
-              width: "100%",
-              height: 1,
-              background: "rgba(240,237,230,0.08)",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                height: 1,
-                width: `${progress}%`,
-                background:
-                  "linear-gradient(90deg, rgba(180,140,100,0.6) 0%, rgba(240,237,230,0.9) 100%)",
-                boxShadow: "0 0 12px rgba(240,237,230,0.4)",
-                transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  right: -3,
-                  top: -3,
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  background: "#f0ede6",
-                  boxShadow: "0 0 10px rgba(240,237,230,0.8)",
-                }}
-              />
-            </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 8,
-            }}
-          >
-            {ticks.map((passed, i) => (
-              <div
-                key={i}
-                style={{
-                  width: 1,
-                  height: 4,
-                  background: passed
-                    ? "rgba(240,237,230,0.3)"
-                    : "rgba(240,237,230,0.1)",
-                  transition: "background 0.5s ease",
-                }}
-              />
-            ))}
+            <div className="shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           </div>
         </div>
 
-        <div
-          style={{
-            marginTop: 32,
-            fontSize: 9,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            color: "rgba(240,237,230,0.15)",
-            animation: "fade-up 2s ease 2.5s both",
-          }}
-        >
-          {finishing
-            ? "Server ready · Launching now"
-            : "Estimated 2 minutes · Please wait"}
-        </div>
+        {/* Percentage */}
+        <p className="text-sm font-medium text-zinc-300">{progress}%</p>
       </div>
     </div>
   );
