@@ -206,8 +206,11 @@ export default function LoadingScreen({ onComplete }) {
         {/* Progress bar */}
         <div className="w-60 h-1 bg-zinc-100 rounded-full overflow-hidden mb-3">
           <div
-            className="h-full bg-emerald-500 rounded-full relative overflow-hidden transition-[width] duration-[450ms] ease-[cubic-bezier(.4,0,.2,1)]"
-            style={{ width: `${progress}%` }}
+            className="h-full bg-emerald-500 rounded-full relative overflow-hidden"
+            style={{
+              width: `${progress}%`,
+              transition: "width 450ms cubic-bezier(.4,0,.2,1)",
+            }}
           >
             <div className="shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent" />
           </div>
