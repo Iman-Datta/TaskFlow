@@ -19,15 +19,16 @@ import Trash from "./pages/Trash";
 import AuthCallback from "./pages/AuthCallback";
 import About from "./pages/About";
 import { refreshAccessToken } from "./utils/refreshAccessToken";
-
-import Loader from "./components/Loader";
+import LoadingScreen  from "./components/LoadingScreen ";
+import { useState } from "react";
 
 const API = import.meta.env.VITE_API_URL;
 
 function App() {
   const dispatch = useDispatch();
   const isAuthLoading = useSelector((state) => state.auth.isAuthLoading);
-  const theme = useSelector((state) => state.theme.theme); // ← MISSING
+  const theme = useSelector((state) => state.theme.theme);
+  const [showLoader, setShowLoader] = useState(true);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -59,8 +60,13 @@ function App() {
 
   // Paste this inside your isAuthLoading block
 
-  if (isAuthLoading) {
-    return <Loader label="Waking up server..." />;
+  if (showLoader) {
+    return (
+      <LoadingScreen 
+        backendReady={!isAuthLoading}
+        onComplete={() => setShowLoader(false)}
+      />
+    );
   }
 
   return (
