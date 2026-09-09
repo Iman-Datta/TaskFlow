@@ -1,20 +1,23 @@
 import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { X } from "lucide-react";
+
 import Login from "../components/auth/Login";
 import RegisterEntry from "../components/auth/RegisterEntry";
 import ForgotPassword from "../components/auth/ForgotPassword";
+
 import { setUser, setAccessToken } from "../features/auth/authSlice";
-import { useSelector } from "react-redux";
-import { useEffect } from "react";
-import { X } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL;
 
 function Auth() {
   const [view, setView] = useState("login");
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const user = useSelector((state) => state.auth.user);
 
   useEffect(() => {
@@ -27,9 +30,14 @@ function Auth() {
     try {
       const res = await fetch(`${API}/auth/register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
 
       const data = await res.json();
@@ -39,10 +47,13 @@ function Auth() {
           navigate("/auth");
           return;
         }
+
         throw new Error(data.message || "Registration failed");
       }
 
-      navigate("/checkEmail", { state: { email } });
+      navigate("/checkEmail", {
+        state: { email },
+      });
     } catch (error) {
       console.error(error);
     }
@@ -52,29 +63,42 @@ function Auth() {
     try {
       const res = await fetch(`${API}/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
         credentials: "include",
       });
 
       if (!res.ok && res.status === 403) {
-        navigate("/checkEmail", { state: { email } });
+        navigate("/checkEmail", {
+          state: { email },
+        });
         return;
       }
 
       const data = await res.json();
+
       const token = data.accessToken;
 
-      if (!token) throw new Error(data.message || "Failed to login");
+      if (!token) {
+        throw new Error(data.message || "Failed to login");
+      }
 
       dispatch(setAccessToken(token));
 
       const me = await fetch(`${API}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         credentials: "include",
       });
 
       const userData = await me.json();
+
       dispatch(setUser(userData.user));
 
       navigate("/task");
@@ -86,21 +110,19 @@ function Auth() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-zinc-100 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-[680px] flex rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-xl shadow-black/10 dark:shadow-black/40">
-        {/* Left panel */}
+        {/* ── Left panel ── */}
         <div className="hidden md:flex flex-col justify-between w-[220px] bg-zinc-900 dark:bg-zinc-950 p-8 border-r border-zinc-800">
           <div>
+            {/* Logo */}
             <div className="flex items-center gap-2 mb-8">
-              <div className="w-6 h-6 bg-emerald-500 rounded-md flex items-center justify-center">
-                <svg width="12" height="12" viewBox="0 0 12 12">
-                  <polyline
-                    points="2,6 5,9.5 10,2.5"
-                    stroke="white"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+              <div className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                <img
+                  src="/logo.png"
+                  alt="DoTo Logo"
+                  className="w-7 h-7 object-contain"
+                />
               </div>
+
               <span className="text-[15px] font-medium text-zinc-100">
                 DoTo
               </span>
@@ -117,17 +139,27 @@ function Auth() {
           <p className="text-zinc-600 text-xs">Built by Iman Datta</p>
         </div>
 
-        {/* Right panel */}
+        {/* ── Right panel ── */}
         <div className="flex-1 bg-white dark:bg-zinc-900 p-8 relative">
+          {/* Close button */}
           <button
             onClick={() => {
               navigate("/");
             }}
-            className="absolute top-4 right-4 p-2 rounded-md text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-800 dark:hover:text-white transition hover:scale-110 active:scale-95"
+            className="
+              absolute top-4 right-4 p-2 rounded-md
+              text-zinc-500
+              hover:bg-zinc-200 dark:hover:bg-zinc-800
+              hover:text-zinc-800 dark:hover:text-white
+              transition
+              hover:scale-110
+              active:scale-95
+            "
           >
             <X size={20} />
           </button>
 
+          {/* Auth content */}
           <div
             key={view}
             className="animate-in fade-in slide-in-from-bottom-2 duration-200"
