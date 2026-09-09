@@ -180,7 +180,7 @@ function CheckEmail() {
         </div>
 
         <p className="text-center text-xs text-zinc-400 dark:text-zinc-600 mt-5">
-          TaskFlow &mdash; by Iman Datta
+          DoTo &mdash; by Iman Datta
         </p>
       </div>
     </div>

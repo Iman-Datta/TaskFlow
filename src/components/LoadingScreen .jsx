@@ -109,7 +109,6 @@ export default function LoadingScreen({ backendReady, onComplete }) {
     }, 50);
   }
 
-  // Watch backendReady prop — when App.jsx signals done, set the flag
   useEffect(() => {
     if (backendReady) {
       backendDone.current = true;

@@ -82,8 +82,8 @@ function TaskSort({ filters, setFilters }) {
           onClick={toggleOrder}
           title={
             filters.order === "asc"
-              ? "Ascending — click to flip"
-              : "Descending — click to flip"
+              ? "Ascending click to flip"
+              : "Descending click to flip"
           }
           className="flex items-center justify-center px-2.5 transition-colors
             text-zinc-400 hover:text-zinc-700 dark:text-zinc-500 dark:hover:text-zinc-200 select-none"

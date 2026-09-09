@@ -121,8 +121,8 @@ function Home() {
             ref={subRef}
             className="text-[16px] text-zinc-500 dark:text-zinc-400 leading-relaxed mb-10 max-w-lg"
           >
-            TaskFlow is a minimalist task manager built for people who value
-            clarity. Prioritize, schedule, and accomplish — without the clutter.
+            DoTo is a minimalist task manager built for people who value
+            clarity. Prioritize, schedule, and accomplish, without the clutter.
           </p>
 
           {/* CTAs */}
@@ -229,7 +229,7 @@ function Home() {
             Ready to get things done?
           </h2>
           <p className="text-[14px] text-zinc-500 dark:text-zinc-400 mb-8 leading-relaxed">
-            Built for simplicity. Designed for productivity. TaskFlow helps you
+            Built for simplicity. Designed for productivity. DoTo helps you
             stay organized without overwhelming you.
           </p>
           <button

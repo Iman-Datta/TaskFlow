@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/Iman-Datta/TaskFlow/main/public/vite.svg" alt="TaskFlow Logo" width="72" />
 
-# TaskFlow — Frontend
+# Noto — Frontend
 
 > *A clean, fast, and feature-rich task manager built with React 19 & Vite 7*
 
@@ -31,7 +31,7 @@
 
 ## Overview
 
-This is the **frontend** of TaskFlow — a modern, full-stack productivity app. The UI is built with React 19 and Vite 7, styled with Tailwind CSS, and powered by Redux Toolkit for global state. It communicates with the [TaskFlow Backend](https://github.com/Iman-Datta/TaskFlow-backend) over a REST API.
+This is the **frontend** of DoTo — a modern, full-stack productivity app. The UI is built with React 19 and Vite 7, styled with Tailwind CSS, and powered by Redux Toolkit for global state. It communicates with the [DoTo Backend](https://github.com/Iman-Datta/TaskFlow-backend) over a REST API.
 
 The design prioritizes speed, accessibility, and a distraction-free user experience — using Radix UI primitives, smooth toasts via Sonner, and elegant typography with Cormorant Garamond.
 

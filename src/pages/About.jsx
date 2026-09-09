@@ -98,7 +98,7 @@ function About() {
           </div>
 
           <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-4">
-            TaskFlow
+            DoTo
           </h1>
 
           <p className="text-[15px] text-zinc-500 dark:text-zinc-400 max-w-lg">
@@ -126,7 +126,7 @@ function About() {
         {/* About */}
         <div ref={projectRef} className="mb-10">
           <p className="text-sm text-zinc-500">
-            TaskFlow is my first full-stack project. Built to understand real
+            DoTo is my first full-stack project. Built to understand real
             app structure.
           </p>
         </div>
@@ -147,9 +147,6 @@ function About() {
         {/* Developer */}
         <div ref={ctaRef} className="mb-10">
           <p className="text-sm text-zinc-500 mb-4">Built by Iman Datta.</p>
-
-          {/* ❌ Removed useless button */}
-          {/* Only useful link kept */}
           <a
             href="https://github.com/Iman-Datta/TaskFlow"
             target="_blank"

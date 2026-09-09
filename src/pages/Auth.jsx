@@ -102,7 +102,7 @@ function Auth() {
                 </svg>
               </div>
               <span className="text-[15px] font-medium text-zinc-100">
-                TaskFlow
+                DoTo
               </span>
             </div>
 
